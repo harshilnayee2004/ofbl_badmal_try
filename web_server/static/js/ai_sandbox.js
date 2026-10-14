@@ -308,8 +308,6 @@ async function runStepByStepLoop() {
 }
 
 
-let videoFrameCount = 0;
-
 function onVideoFileSelected(event) {
     const file = event.target ? (event.target.files ? event.target.files[0] : null) : event;
     if (!file) return;

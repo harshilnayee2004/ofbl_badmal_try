@@ -9,10 +9,12 @@ CFG = load_config(os.path.join(os.path.dirname(os.path.abspath(__file__)), "mode
 registry = ModelRegistry(CFG, base_dir=BASE, max_loaded=int(os.getenv("MAX_LOADED_MODELS", "8")))
 router = APIRouter(prefix="/inspect", tags=["inspection"])
 
-# 3 Unified Component Stages
+# Unified Component Stages (Split Box into Outside and Inside)
 STAGE_MODELS = {
     "stage_carrier": ["carrier_seal_label", "carrier_rust"],
-    "stage_box": ["h2a_seal_label", "h2a_rust", "h2a_inner", "primer_count"],
+    "stage_box_outer": ["h2a_seal_label", "h2a_rust"],
+    "stage_box_inner": ["h2a_inner", "primer_count"],
+    "stage_box": ["h2a_seal_label", "h2a_rust", "h2a_inner", "primer_count"],  # retained for backwards compatibility
     "stage_primer": ["primer_assembly", "primer_paint"]
 }
 

@@ -183,7 +183,7 @@ function runContinuousVideoLoop() {
         sendCurrentVideoFrameToAI();
     }
 
-    if (!videoElement.paused && !videoElement.ended) {
+    if (isVideoPlaying && !videoElement.ended) {
         videoLoopId = requestAnimationFrame(runContinuousVideoLoop);
     }
 }
@@ -213,6 +213,7 @@ function onVideoFileSelected(event) {
     stopVideoProcessing();
     currentVideoDetections = [];
     videoFrameCount = 0;
+    loadInitialChecklist();
 
     // Immediately enable action buttons
     if (playBtn) playBtn.disabled = false;
@@ -383,11 +384,20 @@ function resetVideoTest() {
     const counter = document.getElementById('videoFrameCounter');
     if (counter) counter.innerText = 'Frame 0';
     renderVideoFrame();
-    const progressBadge = document.getElementById('videoProgressBadge');
-    if (progressBadge) {
-        progressBadge.innerText = '00:00 / 00:00';
-        progressBadge.className = 'badge bg-secondary font-monospace';
+    updateVideoTimeline();
+    loadInitialChecklist();
+
+    const decisionCard = document.getElementById('videoDecisionCard');
+    const decisionText = document.getElementById('videoDecisionText');
+    if (decisionCard && decisionText) {
+        decisionCard.className = 'card border-0 shadow-sm';
+        decisionText.className = 'fw-bold mb-0 text-secondary';
+        decisionText.innerText = 'WAITING FOR VIDEO';
     }
+    const detCount = document.getElementById('videoDetCount');
+    if (detCount) detCount.innerText = '0';
+    const detectionsList = document.getElementById('videoDetectionsList');
+    if (detectionsList) detectionsList.innerHTML = '<div class="text-muted small text-center py-3">No detections on current frame</div>';
 }
 
 function seekVideo(event) {
@@ -400,11 +410,18 @@ function seekVideo(event) {
 
 function updateVideoTimeline() {
     if (!videoElement || !videoElement.duration) return;
-    const cur = videoElement.currentTime;
-    const dur = videoElement.duration;
-    const pct = (cur / dur) * 100;
+    const cur = videoElement.currentTime || 0;
+    const dur = videoElement.duration || 0;
+    const pct = dur > 0 ? (cur / dur) * 100 : 0;
     const bar = document.getElementById('videoProgressBar');
     if (bar) bar.style.width = `${pct}%`;
+
+    const curMin = Math.floor(cur / 60).toString().padStart(2, '0');
+    const curSec = Math.floor(cur % 60).toString().padStart(2, '0');
+    const durMin = Math.floor(dur / 60).toString().padStart(2, '0');
+    const durSec = Math.floor(dur % 60).toString().padStart(2, '0');
+    const badge = document.getElementById('videoProgressBadge');
+    if (badge) badge.innerText = `${curMin}:${curSec} / ${durMin}:${durSec}`;
 }
 
 
@@ -475,12 +492,17 @@ async function sendCurrentVideoFrameToAI() {
         formData.append('image', blob, 'video_frame.jpg');
 
         const t0 = performance.now();
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 8000);
+
         try {
             const aiUrl = `/ai_server/inspect/${modelKey}`;
             const res = await fetch(aiUrl, {
                 method: 'POST',
-                body: formData
+                body: formData,
+                signal: controller.signal
             });
+            clearTimeout(timeoutId);
 
             if (res.ok) {
                 const data = await res.json();
@@ -490,8 +512,11 @@ async function sendCurrentVideoFrameToAI() {
 
                 updateVideoDashboardData(data);
                 renderVideoFrame();
+            } else {
+                console.error('Frame inference HTTP error:', res.status, await res.text());
             }
         } catch (err) {
+            clearTimeout(timeoutId);
             console.error('Frame inference error:', err);
         } finally {
             isProcessingFrame = false;
@@ -816,12 +841,54 @@ function renderFrameInViewer(fr) {
 // ==========================================
 // DRAG & DROP AND INITIALIZATION
 // ==========================================
+async function loadInitialChecklist() {
+    const modelSelect = document.getElementById('videoModelSelect');
+    const modelKey = modelSelect ? modelSelect.value : 'stage_primer';
+    const checklistContainer = document.getElementById('videoChecklistContainer');
+    if (!checklistContainer) return;
+
+    try {
+        const res = await fetch(`/ai_server/inspect/${modelKey}/checklist`);
+        if (res.ok) {
+            const checks = await res.json();
+            if (checks && checks.length > 0) {
+                checklistContainer.innerHTML = '';
+                checks.forEach(c => {
+                    const item = document.createElement('div');
+                    item.className = 'd-flex align-items-center justify-content-between p-2 mb-1 rounded bg-light border';
+                    item.innerHTML = `
+                        <div class="d-flex align-items-center gap-2">
+                            <span class="material-symbols-outlined fs-6 text-secondary">radio_button_unchecked</span>
+                            <span class="small fw-semibold text-dark">${c.label || c.id}</span>
+                        </div>
+                        <span class="badge bg-secondary-subtle text-secondary border">READY</span>
+                    `;
+                    checklistContainer.appendChild(item);
+                });
+            }
+        }
+    } catch (e) {
+        console.warn('Could not load initial checklist:', e);
+    }
+}
+
 document.addEventListener('DOMContentLoaded', () => {
-    // Setup video modal close cleanup
+    // Setup video modal close & open
     const videoModalEl = document.getElementById('videoTestModal');
     if (videoModalEl) {
+        videoModalEl.addEventListener('show.bs.modal', () => {
+            loadInitialChecklist();
+        });
         videoModalEl.addEventListener('hidden.bs.modal', () => {
             stopVideoProcessing();
+        });
+    }
+
+    // Dynamic checklist refresh on model change
+    const videoModelSelect = document.getElementById('videoModelSelect');
+    if (videoModelSelect) {
+        videoModelSelect.addEventListener('change', () => {
+            loadInitialChecklist();
         });
     }
 

@@ -41,6 +41,21 @@ async def proxy_inspect(model_key: str, image: UploadFile = File(...)):
         raise HTTPException(status_code=500, detail=f"AI Server proxy error: {str(e)}")
 
 
+@router.get("/inspect/{model_key}/checklist")
+async def proxy_checklist(model_key: str):
+    """Proxies checklist queries to AI server."""
+    ai_base_url = settings.AI_SERVER_URL.rstrip("/")
+    target_url = f"{ai_base_url}/inspect/{model_key}/checklist"
+    try:
+        async with httpx.AsyncClient(timeout=10.0) as client:
+            resp = await client.get(target_url)
+        if resp.status_code != 200:
+            raise HTTPException(status_code=resp.status_code, detail=resp.text)
+        return resp.json()
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"AI Server proxy error: {str(e)}")
+
+
 @router.post("/inspect_video/{model_key}")
 async def proxy_inspect_video(model_key: str, video: UploadFile = File(...), sample_fps: float = 2.0):
     """Proxies the browser video upload to the local AI Server without CORS issues."""

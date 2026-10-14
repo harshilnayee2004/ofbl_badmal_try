@@ -6,7 +6,7 @@ from .rules import load_config, evaluate, checklist, to_messages
 
 BASE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))     # ai_server/
 CFG = load_config(os.path.join(os.path.dirname(os.path.abspath(__file__)), "models_config.yaml"))
-registry = ModelRegistry(CFG, base_dir=BASE, max_loaded=int(os.getenv("MAX_LOADED_MODELS", "3")))
+registry = ModelRegistry(CFG, base_dir=BASE, max_loaded=int(os.getenv("MAX_LOADED_MODELS", "8")))
 router = APIRouter(prefix="/inspect", tags=["inspection"])
 
 # 3 Unified Component Stages

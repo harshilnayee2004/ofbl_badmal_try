@@ -555,6 +555,9 @@ function updateVideoDashboardData(data) {
 // ==========================================
 // SERVER-SIDE FULL VIDEO SCAN (BATCH INSPECT)
 // ==========================================
+let scanFrameResults = [];     // all sampled frames from last server scan
+let currentFrameViewerIdx = 0; // which frame is showing in the viewer
+
 async function runServerVideoScan() {
     if (!videoFile) {
         alert('Please select a video file first.');
@@ -568,7 +571,6 @@ async function runServerVideoScan() {
 
     const scanBtn = document.getElementById('serverScanBtn');
     const reportSection = document.getElementById('serverScanReportSection');
-    const reportBody = document.getElementById('serverScanReportBody');
 
     const originalContent = scanBtn.innerHTML;
     scanBtn.disabled = true;
@@ -588,53 +590,70 @@ async function runServerVideoScan() {
         }
 
         const data = await res.json();
-        reportSection.classList.remove('d-none');
+        scanFrameResults = data.sampled_results || [];
+        currentFrameViewerIdx = 0;
 
+        // ── Summary bar in the card header ──────────────────────────
         const isPass = data.overall === 'PASS';
-        let defectItems = '';
-        const defectFrames = (data.sampled_results || []).filter(r => r.overall !== 'PASS');
-
-        if (defectFrames.length > 0) {
-            defectItems = defectFrames.map(f => `
-                <div class="list-group-item list-group-item-action d-flex justify-content-between align-items-center py-2" style="cursor: pointer;" onclick="if(videoElement){videoElement.currentTime=${f.timestamp};}">
-                    <div>
-                        <span class="badge bg-danger me-2">Defect at ${f.timestamp}s</span>
-                        <span class="small text-muted">Frame #${f.frame_index}</span>
-                    </div>
-                    <span class="badge bg-dark border">Click to Jump</span>
-                </div>
-            `).join('');
-        } else {
-            defectItems = '<div class="text-success small p-2"><span class="material-symbols-outlined fs-6 align-middle me-1">check_circle</span>All sampled frames passed criteria!</div>';
+        const defectFrames = scanFrameResults.filter(r => r.overall !== 'PASS');
+        const summaryBar = document.getElementById('scanSummaryBar');
+        if (summaryBar) {
+            summaryBar.innerHTML = `
+                <span class="badge ${isPass ? 'bg-success' : 'bg-danger'} fs-6 px-3">${data.overall}</span>
+                <span class="text-white-50 small">${data.sampled_frames_count || 0} frames scanned</span>
+                <span class="${defectFrames.length > 0 ? 'text-danger' : 'text-success'} small fw-bold">${defectFrames.length} defect${defectFrames.length !== 1 ? 's' : ''}</span>
+                <span class="text-white-50 small">${data.total_frames_in_video || '?'} total video frames</span>
+            `;
         }
 
-        reportBody.innerHTML = `
-            <div class="row g-3">
-                <div class="col-md-3 text-center">
-                    <span class="text-muted small fw-bold text-uppercase d-block mb-1">Batch Verdict</span>
-                    <span class="badge fs-5 px-3 py-2 ${isPass ? 'bg-success' : 'bg-danger'}">${data.overall}</span>
-                </div>
-                <div class="col-md-3 text-center">
-                    <span class="text-muted small fw-bold text-uppercase d-block mb-1">Total Video Frames</span>
-                    <h5 class="fw-bold font-monospace mb-0">${data.total_frames_in_video || 'N/A'}</h5>
-                </div>
-                <div class="col-md-3 text-center">
-                    <span class="text-muted small fw-bold text-uppercase d-block mb-1">Sampled Frames</span>
-                    <h5 class="fw-bold font-monospace mb-0">${data.sampled_frames_count || 0}</h5>
-                </div>
-                <div class="col-md-3 text-center">
-                    <span class="text-muted small fw-bold text-uppercase d-block mb-1">Defect Frames</span>
-                    <h5 class="fw-bold font-monospace mb-0 text-${defectFrames.length > 0 ? 'danger' : 'success'}">${defectFrames.length}</h5>
-                </div>
-            </div>
-            <hr class="my-3">
-            <h6 class="small fw-bold text-uppercase text-muted mb-2">Defect Timeline Navigation</h6>
-            <div class="list-group list-group-flush border rounded overflow-auto" style="max-height: 160px;">
-                ${defectItems}
-            </div>
-        `;
+        // ── Defect count badge in the frame list header ──────────────
+        const defectBadge = document.getElementById('defectBadgeCount');
+        if (defectBadge) defectBadge.textContent = `${defectFrames.length} defect${defectFrames.length !== 1 ? 's' : ''}`;
 
+        // ── Build the scrollable frame list ─────────────────────────
+        const listContainer = document.getElementById('frameListContainer');
+        if (listContainer) {
+            listContainer.innerHTML = '';
+            scanFrameResults.forEach((fr, idx) => {
+                const isDefect = fr.overall !== 'PASS';
+                // collect defect class names for labels
+                let defectLabels = '';
+                if (isDefect && fr.messages) {
+                    const detMsg = fr.messages.find(m => m.type === 'detections');
+                    if (detMsg && detMsg.detections) {
+                        const badDets = detMsg.detections.filter(d => d.status === 'DEFECT' && d.box !== null);
+                        if (badDets.length > 0) {
+                            defectLabels = badDets.map(d => `<span class="badge bg-danger-subtle text-danger-emphasis border border-danger-subtle me-1">${d.class_name}</span>`).join('');
+                        }
+                    }
+                }
+                const row = document.createElement('div');
+                row.className = `d-flex align-items-start gap-2 px-3 py-2 border-bottom frame-list-row ${isDefect ? 'bg-danger-subtle' : ''}`;
+                row.style.cursor = 'pointer';
+                row.id = `frameRow_${idx}`;
+                row.innerHTML = `
+                    <div class="d-flex flex-column flex-grow-1 min-w-0">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <span class="font-monospace small fw-bold">${fr.timestamp}s</span>
+                            <span class="badge ${isDefect ? 'bg-danger' : 'bg-success'} ms-2">${isDefect ? 'REJECT' : 'PASS'}</span>
+                        </div>
+                        <div class="small text-muted">Frame #${fr.frame_index}</div>
+                        ${defectLabels ? `<div class="mt-1">${defectLabels}</div>` : ''}
+                    </div>
+                    <span class="material-symbols-outlined fs-5 text-secondary align-self-center">chevron_right</span>
+                `;
+                row.addEventListener('click', () => jumpToFrame(idx));
+                listContainer.appendChild(row);
+            });
+        }
+
+        // ── Show the section ─────────────────────────────────────────
+        reportSection.classList.remove('d-none');
         reportSection.scrollIntoView({ behavior: 'smooth' });
+
+        // ── Auto-jump to first defect frame (or frame 0) ────────────
+        const firstDefectIdx = scanFrameResults.findIndex(r => r.overall !== 'PASS');
+        jumpToFrame(firstDefectIdx >= 0 ? firstDefectIdx : 0);
 
     } catch (err) {
         console.error('Server scan failed:', err);
@@ -644,6 +663,142 @@ async function runServerVideoScan() {
         scanBtn.innerHTML = originalContent;
     }
 }
+
+/**
+ * Render one sampled frame into the frame viewer canvas.
+ * Draws the base64 JPEG image first, then overlays bounding boxes.
+ */
+function jumpToFrame(idx) {
+    if (!scanFrameResults || scanFrameResults.length === 0) return;
+    idx = Math.max(0, Math.min(scanFrameResults.length - 1, idx));
+    currentFrameViewerIdx = idx;
+
+    // Highlight active row in list
+    document.querySelectorAll('.frame-list-row').forEach(r => r.classList.remove('table-active', 'border-primary'));
+    const activeRow = document.getElementById(`frameRow_${idx}`);
+    if (activeRow) {
+        activeRow.classList.add('table-active', 'border-primary');
+        activeRow.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+    }
+
+    // Update nav counter
+    const navCounter = document.getElementById('frameNavCounter');
+    if (navCounter) navCounter.textContent = `${idx + 1} / ${scanFrameResults.length}`;
+
+    const fr = scanFrameResults[idx];
+    const isDefect = fr.overall !== 'PASS';
+
+    // Meta bar
+    const metaEl = document.getElementById('frameViewerMeta');
+    if (metaEl) metaEl.textContent = `t=${fr.timestamp}s  ·  Frame #${fr.frame_index}  ·  ${fr.frame_w}×${fr.frame_h}`;
+
+    // Verdict badge
+    const verdictEl = document.getElementById('frameViewerVerdict');
+    if (verdictEl) {
+        verdictEl.textContent = isDefect ? 'REJECT' : 'PASS';
+        verdictEl.className = `badge fs-6 px-3 ${isDefect ? 'bg-danger' : 'bg-success'}`;
+    }
+
+    // Checklist strip below canvas
+    const checklistDiv = document.getElementById('frameViewerChecklist');
+    const checklistBody = document.getElementById('frameViewerChecklistBody');
+    if (checklistBody && fr.checks && fr.checks.length > 0) {
+        checklistBody.innerHTML = fr.checks.map(c => {
+            const pass = c.status === 'PASS';
+            return `<span class="badge ${pass ? 'bg-success-subtle text-success-emphasis border border-success-subtle' : 'bg-danger-subtle text-danger-emphasis border border-danger-subtle'} px-2 py-1">
+                        ${pass ? '✓' : '✗'} ${c.label}
+                    </span>`;
+        }).join('');
+        if (checklistDiv) checklistDiv.style.display = '';
+    } else {
+        if (checklistDiv) checklistDiv.style.display = 'none';
+    }
+
+    // Draw frame image + boxes on canvas
+    renderFrameInViewer(fr);
+}
+
+function navigateFrame(delta) {
+    jumpToFrame(currentFrameViewerIdx + delta);
+}
+
+/**
+ * Draw the base64 frame image onto the canvas, then draw bounding boxes on top.
+ * Box coords from the AI server are in original frame_w×frame_h pixels.
+ * We scale them to canvas display size.
+ */
+function renderFrameInViewer(fr) {
+    const canvas = document.getElementById('frameViewerCanvas');
+    const placeholder = document.getElementById('frameViewerPlaceholder');
+
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+
+    if (!fr.frame_image) {
+        // No image returned — show placeholder message
+        canvas.style.display = 'none';
+        if (placeholder) placeholder.style.display = '';
+        return;
+    }
+
+    if (placeholder) placeholder.style.display = 'none';
+    canvas.style.display = 'block';
+
+    const img = new Image();
+    img.onload = () => {
+        canvas.width = img.naturalWidth;
+        canvas.height = img.naturalHeight;
+        ctx.drawImage(img, 0, 0);
+
+        // Extract detections
+        let dets = [];
+        if (fr.messages) {
+            const detMsg = fr.messages.find(m => m.type === 'detections');
+            if (detMsg && detMsg.detections) {
+                dets = detMsg.detections.filter(d => d.box !== null);
+            }
+        }
+
+        // Scale factor: original frame vs thumbnail (server already downscaled)
+        // The thumbnail was resized to max 960px wide; coords are still in original fr.frame_w/fr.frame_h
+        const scaleX = canvas.width / (fr.frame_w || canvas.width);
+        const scaleY = canvas.height / (fr.frame_h || canvas.height);
+
+        dets.forEach(d => {
+            const [x1, y1, x2, y2] = d.box;
+            const sx1 = x1 * scaleX, sy1 = y1 * scaleY;
+            const sx2 = x2 * scaleX, sy2 = y2 * scaleY;
+
+            const isGood = d.status === 'PASS';
+            const color = isGood ? '#00e676' : '#ff1744';
+            const lw = Math.max(2, Math.round(canvas.width / 400));
+
+            ctx.strokeStyle = color;
+            ctx.lineWidth = lw;
+            ctx.strokeRect(sx1, sy1, sx2 - sx1, sy2 - sy1);
+
+            const label = `${d.class_name} ${(d.score * 100).toFixed(1)}%`;
+            const fontSize = Math.max(13, Math.round(canvas.width / 70));
+            ctx.font = `bold ${fontSize}px sans-serif`;
+            const tw = ctx.measureText(label).width;
+            const th = fontSize + 4;
+
+            ctx.fillStyle = color;
+            ctx.fillRect(sx1, Math.max(0, sy1 - th - 4), tw + 10, th + 4);
+            ctx.fillStyle = '#000';
+            ctx.fillText(label, sx1 + 5, Math.max(th, sy1 - 2));
+        });
+    };
+    img.onerror = () => {
+        canvas.style.display = 'none';
+        if (placeholder) {
+            placeholder.style.display = '';
+            placeholder.innerHTML = '<span class="material-symbols-outlined fs-1 d-block mb-2 text-danger">broken_image</span><span class="small text-danger">Could not load frame image</span>';
+        }
+    };
+    img.src = 'data:image/jpeg;base64,' + fr.frame_image;
+}
+
 
 // ==========================================
 // DRAG & DROP AND INITIALIZATION

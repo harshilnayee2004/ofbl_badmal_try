@@ -38,10 +38,16 @@ async def inspect(key: str, image: UploadFile = File(...)):
 
 @router.post("/{key}/video")
 async def inspect_video(key: str, video: UploadFile = File(...), sample_fps: float = 2.0, max_frames: int = 150):
-    """Upload a video file -> sample frames -> aggregate detections & checks."""
+    """Upload a video file -> sample frames every N seconds -> run RF-DETR on each.
+    Each sampled result includes:
+      - frame_image: base64 JPEG of the actual captured frame (browser renders this)
+      - messages: bounding box detections with pixel coords
+      - checks: pass/fail per criteria
+      - overall: PASS or REJECT for that frame
+    """
     if key not in CFG:
         raise HTTPException(404, "unknown model")
-    import cv2, tempfile
+    import cv2, tempfile, base64
 
     suffix = os.path.splitext(video.filename or ".mp4")[1] or ".mp4"
     with tempfile.NamedTemporaryFile(delete=False, suffix=suffix) as tmp:
@@ -74,12 +80,25 @@ async def inspect_video(key: str, video: UploadFile = File(...), sample_fps: flo
                 if res.get("overall") != "PASS":
                     overall_verdict = "REJECT"
 
+                # Encode frame as base64 JPEG so the browser can render it visually.
+                # Downscale to max 960px wide to keep JSON payload manageable.
+                thumb = frame
+                max_w = 960
+                if w > max_w:
+                    scale = max_w / w
+                    thumb = cv2.resize(frame, (max_w, int(h * scale)), interpolation=cv2.INTER_AREA)
+                encode_ok, buf = cv2.imencode(".jpg", thumb, [cv2.IMWRITE_JPEG_QUALITY, 65])
+                frame_b64 = base64.b64encode(buf.tobytes()).decode("utf-8") if encode_ok else None
+
                 sampled_results.append({
                     "frame_index": frame_idx,
                     "timestamp": timestamp_sec,
                     "overall": res.get("overall"),
                     "messages": to_messages(res, w, h),
-                    "checks": res.get("checks", [])
+                    "checks": res.get("checks", []),
+                    "frame_image": frame_b64,   # base64 JPEG — browser draws boxes on top of this
+                    "frame_w": w,
+                    "frame_h": h,
                 })
 
             frame_idx += 1
@@ -98,4 +117,3 @@ async def inspect_video(key: str, video: UploadFile = File(...), sample_fps: flo
                 os.remove(tmp_path)
             except Exception:
                 pass
-

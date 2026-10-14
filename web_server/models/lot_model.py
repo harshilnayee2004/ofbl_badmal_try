@@ -45,3 +45,60 @@ class Lot(SQLModel, table=True):
 
     start_time: Optional[datetime.datetime] = Field(default=None)
     end_time: Optional[datetime.datetime] = Field(default=None)
+
+    # Properties for interchangeable primer / fuze terminology across codebase
+    @property
+    def fuze_inspection_status(self) -> str:
+        return self.primer_inspection_status
+
+    @fuze_inspection_status.setter
+    def fuze_inspection_status(self, val: str):
+        self.primer_inspection_status = val
+
+    @property
+    def fuze_acceptance_status(self) -> str:
+        return self.primer_acceptance_status
+
+    @fuze_acceptance_status.setter
+    def fuze_acceptance_status(self, val: str):
+        self.primer_acceptance_status = val
+
+    @property
+    def number_of_fuze(self) -> Optional[int]:
+        return self.number_of_primer
+
+    @number_of_fuze.setter
+    def number_of_fuze(self, val: Optional[int]):
+        self.number_of_primer = val
+
+    @property
+    def number_of_fuze_to_inspect(self) -> Optional[int]:
+        return self.number_of_primer_to_inspect
+
+    @number_of_fuze_to_inspect.setter
+    def number_of_fuze_to_inspect(self, val: Optional[int]):
+        self.number_of_primer_to_inspect = val
+
+    @property
+    def fuze_type(self) -> Optional[str]:
+        return self.primer_type
+
+    @fuze_type.setter
+    def fuze_type(self, val: Optional[str]):
+        self.primer_type = val
+
+    @property
+    def fuze_current_sequence(self) -> Optional[int]:
+        return self.primer_current_sequence
+
+    @fuze_current_sequence.setter
+    def fuze_current_sequence(self, val: Optional[int]):
+        self.primer_current_sequence = val
+
+    @property
+    def fuze_count_confirmation(self) -> Optional[int]:
+        return self.primer_count_confirmation
+
+    @fuze_count_confirmation.setter
+    def fuze_count_confirmation(self, val: Optional[int]):
+        self.primer_count_confirmation = val

@@ -27,7 +27,8 @@ def user_dashboard(request: Request, current_user: User = Depends(get_current_us
     
     carrier_lots = db.exec(select(Lot).where(Lot.carrier_inspection_status.in_(['Pending', 'Inspecting']), (Lot.number_of_carrier > 0) | (Lot.carrier_type.isnot(None)))).all()
     box_lots = db.exec(select(Lot).where(Lot.box_inspection_status.in_(['Pending', 'Inspecting']))).all()
-    fuze_lots = db.exec(select(Lot).where(Lot.fuze_inspection_status.in_(['Pending', 'Inspecting']))).all()
+    fuze_lots = db.exec(select(Lot).where(Lot.primer_inspection_status.in_(['Pending', 'Inspecting']))).all()
+
 
     return templates.TemplateResponse(
         request=request,
@@ -154,7 +155,7 @@ def inspect_fuze(
             }
         )
     lots = db.exec(
-        select(Lot).where(Lot.fuze_inspection_status.in_(["Pending", "Inspecting"]))
+        select(Lot).where(Lot.primer_inspection_status.in_(["Pending", "Inspecting"]))
     ).all()
     return templates.TemplateResponse(
         request=request,

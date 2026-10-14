@@ -190,8 +190,8 @@ class LotService:
 
         if inspection_type == "box":
             status_field = Lot.box_inspection_status
-        elif inspection_type == "fuze":
-            status_field = Lot.fuze_inspection_status
+        elif inspection_type == "fuze" or inspection_type == "primer":
+            status_field = Lot.primer_inspection_status
         elif inspection_type == "carrier":
             status_field = Lot.carrier_inspection_status
 

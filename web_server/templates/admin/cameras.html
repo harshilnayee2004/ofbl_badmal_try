@@ -1,0 +1,222 @@
+{% extends "admin/base.html" %}
+
+{% block title %}Manage Cameras - Primer Inspection{% endblock %}
+
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1 class="d-flex align-items-center">
+        <span class="material-symbols-outlined me-1 fs-1">videocam</span>
+        Manage Camera
+    </h1>
+</div>
+
+<div class="card mb-4 shadow-sm">
+    <!-- <div class="card-header bg-white">
+        Cameras
+    </div> -->
+    <div class="card-body">
+        <div class="table-responsive">
+            <table id="camerasTable" class="table table-hover align-middle">
+                <thead class="table-light">
+                    <tr>
+                        <th>ID</th>
+                        <th>Position</th>
+                        <th>IP Address</th>
+                        <th>Port</th>
+                        <th>Username</th>
+                        <th>Status</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <!-- Data loaded via JS -->
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Edit Camera Modal -->
+<div class="modal fade" id="editCameraModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Edit Camera</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="row">
+                    <div class="col-md-12">
+                        <form id="editCameraForm">
+                            <input type="hidden" id="cameraId">
+                            <div class="mb-3">
+                                <label class="form-label">Position (Static)</label>
+                                <input type="text" class="form-control" id="cameraPosition" readonly>
+                            </div>
+                    </div>
+                    <div class="col-md-6">
+
+                        <div class="mb-3">
+                            <label class="form-label">IP Address</label>
+                            <input type="text" class="form-control" id="cameraIp" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Port</label>
+                            <input type="number" class="form-control" id="cameraPort" required>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            <label class="form-label">Username</label>
+                            <input type="text" class="form-control" id="cameraUser" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Password</label>
+                            <input type="text" class="form-control" id="cameraPass" required>
+                        </div>
+                        </form>
+                    </div>
+
+                    <!-- Preview Column -->
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                <button type="button" class="btn btn-primary" id="btnSave">Update</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+    let cameraTable = null;
+    let ws = null;
+
+    function renderStatusBadge(status) {
+        if (status === 'Online') {
+            return '<span class="badge bg-success">Online</span>';
+        }
+        if (status === 'Reconnecting...') {
+            return '<span class="badge bg-warning text-dark">Reconnecting...</span>';
+        }
+        return '<span class="badge bg-danger">Offline</span>';
+    }
+
+    function connectCameraStatusWS() {
+        let protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+        ws = new WebSocket(`${protocol}//${window.location.host}/ws/camera_status`);
+
+        ws.onopen = () => {
+            console.log("Camera status WS connected");
+        };
+
+        ws.onmessage = (event) => {
+            try {
+                const msg = JSON.parse(event.data);
+                const cameraId = msg.camera_id;
+                const status = msg.status;
+
+                cameraTable.rows().every(function () {
+                    const rowData = this.data();
+                    if (rowData.id === cameraId) {
+                        rowData.status = status;
+                        this.data(rowData).invalidate().draw(false);
+                    }
+                });
+            } catch (e) {
+                console.error("WS message error:", e);
+            }
+        };
+
+        ws.onclose = () => {
+            console.warn("Camera status WS disconnected. Reconnecting...");
+            setTimeout(connectCameraStatusWS, 3000);
+        };
+
+        ws.onerror = (err) => {
+            console.error("Camera status WS error:", err);
+            ws.close();
+        };
+    }
+
+    document.addEventListener("DOMContentLoaded", function () {
+
+        cameraTable = $('#camerasTable').DataTable({
+            ajax: '/api/cameras',
+            columns: [
+                { data: 'id' },
+                { data: 'position' },
+                { data: 'ip_address' },
+                { data: 'port' },
+                { data: 'username' },
+                {
+                    data: 'status',
+                    render: function (data) {
+                        return renderStatusBadge(data);
+                    }
+                },
+                {
+                    data: null,
+                    render: function () {
+                        return `<button class="btn btn-sm btn-primary btn-edit">Edit</button>`;
+                    }
+                }
+            ]
+        });
+
+        // Start WebSocket AFTER table is ready
+        connectCameraStatusWS();
+
+        // Edit button handler
+        $('#camerasTable tbody').on('click', '.btn-edit', function () {
+            const rowData = cameraTable.row($(this).closest('tr')).data();
+
+            document.getElementById('cameraId').value = rowData.id;
+            document.getElementById('cameraPosition').value = rowData.position;
+            document.getElementById('cameraIp').value = rowData.ip_address || '192.168.0.12';;
+            document.getElementById('cameraPort').value = rowData.port || 554;
+            document.getElementById('cameraUser').value = rowData.username || 'admin';
+            document.getElementById('cameraPass').value = rowData.password || 'Mipl@123';
+
+            new bootstrap.Modal(document.getElementById('editCameraModal')).show();
+        });
+
+        // Update camera
+        document.getElementById('btnSave').addEventListener('click', async () => {
+            const id = document.getElementById('cameraId').value;
+
+            const payload = {
+                ip_address: document.getElementById('cameraIp').value,
+                port: parseInt(document.getElementById('cameraPort').value),
+                username: document.getElementById('cameraUser').value,
+                password: document.getElementById('cameraPass').value
+            };
+
+            try {
+                const res = await fetch(`/api/cameras/${id}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+
+                if (res.ok) {
+                    bootstrap.Modal
+                        .getInstance(document.getElementById('editCameraModal'))
+                        .hide();
+
+                    cameraTable.ajax.reload(null, false);
+                } else {
+                    alert("Failed to update camera");
+                }
+            } catch (err) {
+                console.error(err);
+            }
+        });
+
+    });
+</script>
+{% endblock %}

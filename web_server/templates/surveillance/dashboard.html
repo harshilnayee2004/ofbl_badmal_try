@@ -1,0 +1,327 @@
+{% extends "surveillance/base.html" %}
+
+{% block title %}Surveillance - Live Feeds{% endblock %}
+
+{% block content %}
+<style>
+    /* Premium UI Theme adjustments */
+    .surveillance-toolbar {
+        background: rgba(255, 255, 255, 0.7);
+        border: 1px solid rgba(255, 255, 255, 0.5);
+        backdrop-filter: blur(10px);
+        -webkit-backdrop-filter: blur(10px);
+        border-radius: 12px;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+    }
+
+    [data-bs-theme="dark"] .surveillance-toolbar {
+        background: rgba(30, 30, 30, 0.7);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    /* Grid Layouts */
+    .camera-grid {
+        display: grid;
+        gap: 1.5rem;
+        transition: all 0.3s ease;
+    }
+
+    .grid-1 {
+        grid-template-columns: 1fr;
+    }
+
+    @media (min-width: 768px) {
+        .grid-4 {
+            grid-template-columns: repeat(2, 1fr);
+        }
+
+        .grid-6 {
+            grid-template-columns: repeat(3, 1fr);
+        }
+    }
+
+    @media (max-width: 767px) {
+
+        .grid-4,
+        .grid-6 {
+            grid-template-columns: 1fr;
+        }
+    }
+
+    /* Camera Container */
+    .camera-card {
+        position: relative;
+        background: #111;
+        border-radius: 12px;
+        overflow: hidden;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+        aspect-ratio: 16/9;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .camera-feed {
+        position: absolute;
+        width: 100%;
+        height: 100%;
+        object-fit: contain;
+    }
+
+    .feed-rotated {
+        transform: rotate(90deg);
+        transform-origin: center center;
+    }
+
+    /* Overlay */
+    .camera-overlay {
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        padding: 10px 15px;
+        background: linear-gradient(to bottom, rgba(0, 0, 0, 0.85) 0%, rgba(0, 0, 0, 0) 100%);
+        color: #fff;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        z-index: 10;
+        pointer-events: none;
+    }
+
+    .camera-name {
+        font-weight: 600;
+        letter-spacing: 0.5px;
+        font-size: 0.95rem;
+        text-transform: uppercase;
+        text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.8);
+    }
+
+    .status-indicator {
+        display: inline-block;
+        width: 10px;
+        height: 10px;
+        border-radius: 50%;
+        background-color: #198754;
+        box-shadow: 0 0 8px #198754;
+        animation: pulse-green 2s infinite;
+    }
+
+    @keyframes pulse-green {
+        0% {
+            box-shadow: 0 0 0 0 rgba(25, 135, 84, 0.7);
+        }
+
+        70% {
+            box-shadow: 0 0 0 6px rgba(25, 135, 84, 0);
+        }
+
+        100% {
+            box-shadow: 0 0 0 0 rgba(25, 135, 84, 0);
+        }
+    }
+</style>
+
+<div class="d-flex justify-content-between align-items-center mb-2">
+    <h1 class="mb-4 d-flex align-items-center"><span
+            class="material-symbols-outlined me-1 fs-1">dashboard</span>Dashboard</h1>
+    <div class="d-flex align-items-center gap-2 gap-md-3">
+        <!-- Upload & Test Video Button -->
+        <button type="button" class="btn btn-outline-danger d-flex align-items-center gap-1 shadow-sm rounded-pill px-3 py-2 fw-semibold" data-bs-toggle="modal" data-bs-target="#videoTestModal">
+            <span class="material-symbols-outlined fs-5">video_file</span>
+            <span>Upload & Test Video</span>
+        </button>
+
+        <!-- Upload & Test Model (Image) Button -->
+        <button type="button" class="btn btn-primary d-flex align-items-center gap-1 shadow-sm rounded-pill px-3 py-2 fw-semibold" data-bs-toggle="modal" data-bs-target="#uploadTestModal">
+            <span class="material-symbols-outlined fs-5">upload_file</span>
+            <span>Upload & Test Image</span>
+        </button>
+
+        <!-- Layout Selection -->
+        <div class="btn-group shadow-sm" role="group" aria-label="Layout Modes">
+            <input type="radio" class="btn-check" name="layout" id="layout1" value="1" autocomplete="off"
+                onchange="changeLayout(1)">
+            <label class="btn btn-outline-primary" for="layout1" title="1 Camera"><span
+                    class="material-symbols-outlined">crop_square</span></label>
+
+            <input type="radio" class="btn-check" name="layout" id="layout4" value="4" autocomplete="off" checked
+                onchange="changeLayout(4)">
+            <label class="btn btn-outline-primary" for="layout4" title="4 Cameras"><span
+                    class="material-symbols-outlined">grid_view</span></label>
+        </div>
+
+        <!-- Pagination Controls -->
+        <nav aria-label="Camera feed pagination">
+            <ul class="pagination mb-0 shadow-sm">
+                <li class="page-item" id="prevBtn"><a class="page-link px-2" href="#"
+                        onclick="changePage(-1); return false;"><span class="material-symbols-outlined"
+                            style="font-size:20px; vertical-align: bottom;">chevron_left</span></a></li>
+                <li class="page-item disabled"><span class="page-link fw-semibold" id="pageInfo">1 / 1</span></li>
+                <li class="page-item" id="nextBtn"><a class="page-link px-2" href="#"
+                        onclick="changePage(1); return false;"><span class="material-symbols-outlined"
+                            style="font-size:20px; vertical-align: bottom;">chevron_right</span></a></li>
+            </ul>
+        </nav>
+    </div>
+</div>
+
+<div id="cameraGrid" class="camera-grid grid-4">
+    <div class="camera-card" id="card-0" style="display: none;">
+        <div class="camera-overlay">
+            <span class="camera-name" id="name-0"></span>
+            <div class="d-flex align-items-center gap-2">
+                <span class="badge bg-dark border border-secondary rounded-pill"
+                    style="font-size: 0.70rem; padding: 0.25em 0.6em;">LIVE</span>
+                <span class="status-indicator"></span>
+            </div>
+        </div>
+        <div class="text-secondary small position-absolute" id="error-0">Loading stream...</div>
+        <img id="feed-0" class="camera-feed"
+            onload="document.getElementById('error-0').style.display='none'; this.style.display='block';"
+            onerror="this.style.display='none'; document.getElementById('error-0').style.display='block'; document.getElementById('error-0').innerText='Stream Offline';" />
+    </div>
+
+    <div class="camera-card" id="card-1" style="display: none;">
+        <div class="camera-overlay">
+            <span class="camera-name" id="name-1"></span>
+            <div class="d-flex align-items-center gap-2">
+                <span class="badge bg-dark border border-secondary rounded-pill"
+                    style="font-size: 0.70rem; padding: 0.25em 0.6em;">LIVE</span>
+                <span class="status-indicator"></span>
+            </div>
+        </div>
+        <div class="text-secondary small position-absolute" id="error-1">Loading stream...</div>
+        <img id="feed-1" class="camera-feed"
+            onload="document.getElementById('error-1').style.display='none'; this.style.display='block';"
+            onerror="this.style.display='none'; document.getElementById('error-1').style.display='block'; document.getElementById('error-1').innerText='Stream Offline';" />
+    </div>
+
+    <div class="camera-card" id="card-2" style="display: none;">
+        <div class="camera-overlay">
+            <span class="camera-name" id="name-2"></span>
+            <div class="d-flex align-items-center gap-2">
+                <span class="badge bg-dark border border-secondary rounded-pill"
+                    style="font-size: 0.70rem; padding: 0.25em 0.6em;">LIVE</span>
+                <span class="status-indicator"></span>
+            </div>
+        </div>
+        <div class="text-secondary small position-absolute" id="error-2">Loading stream...</div>
+        <img id="feed-2" class="camera-feed"
+            onload="document.getElementById('error-2').style.display='none'; this.style.display='block';"
+            onerror="this.style.display='none'; document.getElementById('error-2').style.display='block'; document.getElementById('error-2').innerText='Stream Offline';" />
+    </div>
+
+    <div class="camera-card" id="card-3" style="display: none;">
+        <div class="camera-overlay">
+            <span class="camera-name" id="name-3"></span>
+            <div class="d-flex align-items-center gap-2">
+                <span class="badge bg-dark border border-secondary rounded-pill"
+                    style="font-size: 0.70rem; padding: 0.25em 0.6em;">LIVE</span>
+                <span class="status-indicator"></span>
+            </div>
+        </div>
+        <div class="text-secondary small position-absolute" id="error-3">Loading stream...</div>
+        <img id="feed-3" class="camera-feed"
+            onload="document.getElementById('error-3').style.display='none'; this.style.display='block';"
+            onerror="this.style.display='none'; document.getElementById('error-3').style.display='block'; document.getElementById('error-3').innerText='Stream Offline';" />
+    </div>
+</div>
+
+{% include "shared/ai_sandbox_modals.html" %}
+
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', path='/js/ai_sandbox.js') }}"></script>
+<script>
+    const allCameras = [
+        { "position": "PRIMER_BOX_TOP", "feed_rotation": 0 },
+        { "position": "PRIMER_BOX_TURN_SIDE", "feed_rotation": 90 },
+        { "position": "WEIGHING_RESSISTANCE_CAM", "feed_rotation": 0 },
+        { "position": "CARRIER_TURN_TOP", "feed_rotation": 0 },
+        { "position": "CARRIER_SIDE_MOTOR", "feed_rotation": 90 }
+    ];
+
+
+    let currentLayout = 4;
+    let currentPage = 1;
+    let totalPages = Math.ceil(allCameras.length / currentLayout);
+
+    function changeLayout(num) {
+        currentLayout = num;
+        totalPages = Math.ceil(allCameras.length / currentLayout);
+
+        // Ensure current page is valid in new layout dimension
+        if (currentPage > totalPages) {
+            currentPage = totalPages;
+        }
+
+        const grid = document.getElementById('cameraGrid');
+        grid.className = 'camera-grid grid-' + num;
+
+        renderCameras();
+    }
+
+    function changePage(delta) {
+        const newPage = currentPage + delta;
+        if (newPage >= 1 && newPage <= totalPages) {
+            currentPage = newPage;
+            renderCameras();
+        }
+    }
+
+    function renderCameras() {
+        const startIndex = (currentPage - 1) * currentLayout;
+        const endIndex = startIndex + currentLayout;
+        const visibleCameras = allCameras.slice(startIndex, endIndex);
+
+        for (let i = 0; i < 4; i++) {
+            const card = document.getElementById(`card-${i}`);
+            const feed = document.getElementById(`feed-${i}`);
+            const nameLabel = document.getElementById(`name-${i}`);
+            const errorLabel = document.getElementById(`error-${i}`);
+
+            if (i < visibleCameras.length) {
+                const cam = visibleCameras[i];
+                const cleanName = cam.position.replace(/_/g, ' ');
+                const isRotated = cam.feed_rotation === 90;
+                const streamUrl = `/api/cameras/stream/${cam.position}`;
+
+                card.style.display = 'flex';
+                nameLabel.innerText = cleanName;
+
+                errorLabel.style.display = 'block';
+                errorLabel.innerText = 'Loading stream...';
+
+                if (isRotated) {
+                    feed.classList.add('feed-rotated');
+                } else {
+                    feed.classList.remove('feed-rotated');
+                }
+
+                const currentSrc = feed.getAttribute('src');
+                if (currentSrc !== streamUrl) {
+                    feed.src = ''; // Clear to disconnect old stream
+                    feed.src = streamUrl;
+                }
+            } else {
+                card.style.display = 'none';
+                if (feed.getAttribute('src')) {
+                    feed.src = ''; // Force disconnect when out of view
+                }
+            }
+        }
+
+        // Update Pagination State
+        document.getElementById('pageInfo').innerText = `${currentPage} / ${totalPages}`;
+        document.getElementById('prevBtn').classList.toggle('disabled', currentPage === 1);
+        document.getElementById('nextBtn').classList.toggle('disabled', currentPage === totalPages);
+    }
+
+    // Initial render
+    document.addEventListener('DOMContentLoaded', () => {
+        renderCameras();
+    });
+</script>
+{% endblock %}

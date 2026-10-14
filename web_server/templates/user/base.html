@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}User Dashboard{% endblock %}</title>
+    <!-- Bootstrap 5 CSS (Local) -->
+    <link href="{{ url_for('static', path='/css/bootstrap.min.css') }}" rel="stylesheet">
+    <!-- Material Symbols Outlined (Local) -->
+    <link href="{{ url_for('static', path='/css/material-symbols.css') }}" rel="stylesheet">
+    <!-- DataTables Bootstrap 5 CSS (Local) -->
+    <link href="{{ url_for('static', path='/css/dataTables.bootstrap5.min.css') }}" rel="stylesheet">
+    <!-- Custom CSS -->
+    <link href="{{ url_for('static', path='/css/style.css') }}" rel="stylesheet">
+    {% block stylesheets %}{% endblock %}
+</head>
+
+<body>
+    <!-- Sidebar Mobile Backdrop Overlay -->
+    <div id="sidebar-backdrop"></div>
+
+    <div class="d-flex" id="wrapper" style="height: 100vh; overflow: hidden;">
+        <!-- Sidebar -->
+        <div class="d-flex flex-column flex-shrink-0 p-3 text-white" id="sidebar-wrapper"
+            style="height: 100vh; overflow-y: auto;">
+            <a href="/user/dashboard"
+                class="d-flex align-items-center mb-3 mb-md-0 me-md-auto text-white text-decoration-none">
+                <span class="material-symbols-outlined me-2 fs-4 text-primary">verified_user</span>
+                <span class="fs-5 fw-bold tracking-tight">Primer Inspection</span>
+            </a>
+
+            <hr class="my-2 border-secondary">
+            <ul class="nav nav-pills flex-column mb-auto">
+                <li class="nav-item">
+                    <a href="/user/dashboard"
+                        class="nav-link text-white d-flex align-items-center py-2 {% if request.url.path == '/user/dashboard' %}active{% endif %}"
+                        aria-current="page">
+                        <span class="material-symbols-outlined me-2 fs-5">dashboard</span>
+                        Dashboard
+                    </a>
+                </li>
+                <li>
+                    <a href="/user/manage_lots"
+                        class="nav-link text-white d-flex align-items-center py-2 {% if request.url.path.startswith('/user/manage_lots') %}active{% endif %}">
+                        <span class="material-symbols-outlined me-2 fs-5">inventory_2</span>
+                        Manage Lots
+                    </a>
+                </li>
+                <li>
+                    <a href="/user/inspect_carrier"
+                        class="nav-link text-white d-flex align-items-center py-2 {% if request.url.path.startswith('/user/inspect_carrier') %}active{% endif %}">
+                        <span class="material-symbols-outlined me-2 fs-5">local_shipping</span>
+                        Inspect Carrier 6A/L
+                    </a>
+                </li>
+                <li>
+                    <a href="/user/inspect_box"
+                        class="nav-link text-white d-flex align-items-center py-2 {% if request.url.path.startswith('/user/inspect_box') %}active{% endif %}">
+                        <span class="material-symbols-outlined me-2 fs-5">inventory_2</span>
+                        Inspect Box H2A
+                    </a>
+                </li>
+                <li>
+                    <a href="/user/inspect_fuze"
+                        class="nav-link text-white d-flex align-items-center py-2 {% if request.url.path.startswith('/user/inspect_fuze') %}active{% endif %}">
+                        <span class="material-symbols-outlined me-2 fs-5">adjust</span>
+                        Inspect Primer 1A/L
+                    </a>
+                </li>
+                <li>
+                    <a href="/user/count_boxes_and_fuzes"
+                        class="nav-link text-white d-flex align-items-center py-2 {% if request.url.path.startswith('/user/count_boxes') %}active{% endif %}">
+                        <span class="material-symbols-outlined me-2 fs-5">calculate</span>
+                        Count Boxes / Primers
+                    </a>
+                </li>
+            </ul>
+            <hr class="my-2 border-secondary">
+            <a href="/auth/logout" class="btn btn-sm btn-outline-danger w-100 d-flex align-items-center justify-content-center">
+                <span class="material-symbols-outlined me-1 fs-6">logout</span> Logout
+            </a>
+        </div>
+
+        <!-- Page Content -->
+        <div class="d-flex flex-column flex-grow-1" style="height: 100vh; overflow-y: auto;">
+            <!-- Top Navbar -->
+            <nav class="navbar navbar-expand navbar-light bg-white border-bottom sticky-top px-3">
+                <div class="container-fluid px-0">
+                    <span class="cursor-pointer me-3 p-1 rounded hover-bg-light" id="sidebarToggle" title="Toggle Navigation">
+                        <span class="material-symbols-outlined align-middle fs-4">menu</span>
+                    </span>
+
+                    <div class="ms-auto d-flex align-items-center gap-2">
+                        <span class="material-symbols-outlined text-secondary fs-5">account_circle</span>
+                        <span class="fw-semibold small text-truncate" style="max-width: 220px;">{{ user.email if user else 'User' }}</span>
+                    </div>
+                </div>
+            </nav>
+
+            <!-- Main Content Area -->
+            <div class="container-fluid main-content-container px-3 px-md-4 py-3 h-100">
+                {% block content %}{% endblock %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Container -->
+    <div aria-live="polite" aria-atomic="true" class="position-relative">
+        <div class="toast-container position-fixed top-0 start-50 translate-middle-x p-3" id="toast-container"
+            style="z-index: 1055;"></div>
+    </div>
+
+    <!-- Bootstrap 5 Bundle with Popper (Local) -->
+    <script src="{{ url_for('static', path='/js/bootstrap.bundle.min.js') }}"></script>
+    <!-- jQuery and DataTables (Local) -->
+    <script src="{{ url_for('static', path='/js/jquery.min.js') }}"></script>
+    <script src="{{ url_for('static', path='/js/jquery.dataTables.min.js') }}"></script>
+    <script src="{{ url_for('static', path='/js/dataTables.bootstrap5.min.js') }}"></script>
+    <!-- Custom Script -->
+    <script src="{{ url_for('static', path='/js/script.js') }}"></script>
+    <script src="{{ url_for('static', path='/js/toaster.js') }}"></script>
+    {% block scripts %}{% endblock %}
+    {% include "shared/chat_receiver_widget.html" %}
+</body>
+
+</html>

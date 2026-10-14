@@ -1,0 +1,76 @@
+# Single place that says what each model detects and what counts as good/defect.
+# Class names come from the .pth checkpoints (MODEL_REPORT.md). ASSUMPTIONS are marked - confirm on real images.
+# rule types:
+#   required  : class must be seen (min_count, default 1)      -> missing = DEFECT
+#   forbidden : class must NOT be seen                         -> seen = DEFECT
+#   pair      : good/bad class lists; bad seen = DEFECT, nothing seen = DEFECT
+#   count     : exactly `count` boxes of class
+# ignore_classes: Roboflow parent/dummy class at index 0 - never shown.
+models:
+  carrier_seal_label:
+    stage: carrier
+    path: ai_models/Carrier6AL_Explosive_Seal.pth
+    variant: small
+    threshold: 0.80
+    ignore_classes: [sealed-explosive-carrier6AL]
+    checks:
+      - {id: carrier_seal,  label: "Carrier seal intact",          rule: required, class: sealed}
+      - {id: carrier_label, label: "1.4G explosive label (carrier)", rule: required, class: explosiveLabel}
+
+  h2a_seal_label:
+    stage: box
+    path: ai_models/H2A_Explosive_Seal.pth
+    variant: small
+    threshold: 0.85
+    ignore_classes: [sealed2]
+    checks:
+      - {id: h2a_seal,  label: "H2A box sealed",              rule: required, class: sealed}
+      - {id: h2a_label, label: "1.4G explosive label (H2A)",  rule: required, class: explosiveLabel}
+
+  h2a_rust:
+    stage: box
+    path: ai_models/h2a_rust_checkpoint_best_total.pth
+    variant: large
+    threshold: 0.30            # ASSUMPTION: script also mentions 0.85 - confirm which is the pass/fail cutoff
+    checks:
+      - {id: h2a_rust, label: "H2A box free of rust", rule: forbidden, class: H2A-rust}
+
+  h2a_inner:
+    stage: box
+    path: ai_models/Inner_H2A_Box.pth
+    variant: small
+    threshold: 0.90
+    ignore_classes: [PaparSlip-WoodenSheet-7RpN--m69m]
+    checks:
+      - {id: cotton,      label: "Cotton / felt sheet present", rule: required, class: CottonSheet}
+      - {id: diaphragm,   label: "2 wooden diaphragms",        rule: required, class: Diaphgarm, min_count: 2}
+      - {id: packing_slip, label: "Packing slip present",      rule: required, class: PaperSlip}
+      - {id: wooden_sheet, label: "Plywood sheet present",     rule: required, class: WoodenSheet}
+
+  primer_assembly:
+    stage: primer
+    path: ai_models/Primer.pth
+    variant: small
+    threshold: 0.60
+    checks:
+      - {id: paper_liner, label: "Paper liner intact",   rule: pair, good: [proper_paper_liner], bad: [improper_paper_liner]}
+      - {id: rubber_ring, label: "Rubber ring present",  rule: required, class: rubber_present}
+      - {id: assembly,    label: "Magazine assembly",    rule: pair, good: [proper_assembly], bad: [improper_assembly]}
+
+  primer_count:
+    stage: box
+    path: ai_models/Primer_Count.pth
+    variant: small
+    resolution: 512
+    threshold: 0.70
+    checks:
+      - {id: primer_count, label: "Primer count = 18", rule: count, class: Primer, count: 18}   # tender: 18 per H2A box
+
+  primer_paint:
+    stage: primer
+    path: ai_models/Primer_Paint_checkpoint_best_total.pth   # rename: two folders both use checkpoint_best_total.pth
+    variant: small
+    resolution: 512
+    threshold: 0.30
+    checks:
+      - {id: paint_peel, label: "Free of paint peeling", rule: forbidden, class: Paint_Peal}

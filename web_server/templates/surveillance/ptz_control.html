@@ -1,0 +1,188 @@
+{% extends "surveillance/base.html" %}
+
+{% block title %}PTZ Control{% endblock %}
+
+{% block content %}
+<style>
+    img {
+        pointer-events: none;
+    }
+
+    * {
+        user-select: none;
+    }
+</style>
+
+<div class="d-flex justify-content-between align-items-center mb-2">
+    <h1 class="mb-4 d-flex align-items-center"><span class="material-symbols-outlined me-1 fs-1">joystick</span>PTZ
+        Control</h1>
+</div>
+
+<div class="row g-4">
+
+    <!-- Camera Feed -->
+    <div class="col-md-9">
+        <div class="card shadow-sm">
+            <div class="card-body p-0">
+                <img src="/api/cameras/stream/WEIGHING_RESSISTANCE_CAM" class="img-fluid w-100"
+                    style="aspect-ratio:16/9; object-fit:contain;">
+
+            </div>
+        </div>
+    </div>
+
+    <!-- Controls -->
+    <div class="col-md-3">
+        <div class="card shadow-sm mb-4">
+            <div class="card-body text-center">
+                <h6 class="mb-4">PTZ Controls</h6>
+
+                <!-- D-Pad -->
+                <div class="d-grid gap-2 mx-auto mb-4" style="grid-template-columns: repeat(3, 1fr); max-width: 160px;">
+                    <button class="btn btn-light p-2 d-flex justify-content-center align-items-center"
+                        onpointerdown="startCommand(5)" onpointerup="stopCommand(5)" style="touch-action: none;">
+                        <span class="material-symbols-outlined">north_west</span>
+                    </button>
+                    <button class="btn btn-light p-2 d-flex justify-content-center align-items-center"
+                        onpointerdown="startCommand(1)" onpointerup="stopCommand(1)" style="touch-action: none;">
+                        <span class="material-symbols-outlined">keyboard_arrow_up</span>
+                    </button>
+                    <button class="btn btn-light p-2 d-flex justify-content-center align-items-center"
+                        onpointerdown="startCommand(6)" onpointerup="stopCommand(6)" style="touch-action: none;">
+                        <span class="material-symbols-outlined">north_east</span>
+                    </button>
+
+                    <button class="btn btn-light p-2 d-flex justify-content-center align-items-center"
+                        onpointerdown="startCommand(3)" onpointerup="stopCommand(3)" style="touch-action: none;">
+                        <span class="material-symbols-outlined">keyboard_arrow_left</span>
+                    </button>
+                    <button class="btn btn-dark p-2 d-flex justify-content-center align-items-center fw-bold"
+                        style="font-size: 0.8rem;" onclick="startCommand(9)">
+                        AUTO
+                    </button>
+                    <button class="btn btn-light p-2 d-flex justify-content-center align-items-center"
+                        onpointerdown="startCommand(4)" onpointerup="stopCommand(4)" style="touch-action: none;">
+                        <span class="material-symbols-outlined">keyboard_arrow_right</span>
+                    </button>
+
+                    <button class="btn btn-light p-2 d-flex justify-content-center align-items-center"
+                        onpointerdown="startCommand(7)" onpointerup="stopCommand(7)" style="touch-action: none;">
+                        <span class="material-symbols-outlined">south_west</span>
+                    </button>
+                    <button class="btn btn-light p-2 d-flex justify-content-center align-items-center"
+                        onpointerdown="startCommand(2)" onpointerup="stopCommand(2)" style="touch-action: none;">
+                        <span class="material-symbols-outlined">keyboard_arrow_down</span>
+                    </button>
+                    <button class="btn btn-light p-2 d-flex justify-content-center align-items-center"
+                        onpointerdown="startCommand(8)" onpointerup="stopCommand(8)" style="touch-action: none;">
+                        <span class="material-symbols-outlined">south_east</span>
+                    </button>
+                </div>
+
+                <hr class="my-4">
+
+                <!-- Zoom, Focus, Iris -->
+                <div class="d-flex flex-column gap-3 px-2">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <button
+                            class="btn btn-secondary rounded-circle p-1 d-flex justify-content-center align-items-center"
+                            style="width: 35px; height: 35px;" onpointerdown="startCommand(12)"
+                            onpointerup="stopCommand(12)">
+                            <span class="material-symbols-outlined fs-5">remove</span>
+                        </button>
+                        <span class="fw-medium">Zoom</span>
+                        <button
+                            class="btn btn-secondary rounded-circle p-1 d-flex justify-content-center align-items-center"
+                            style="width: 35px; height: 35px;" onpointerdown="startCommand(11)"
+                            onpointerup="stopCommand(11)">
+                            <span class="material-symbols-outlined fs-5">add</span>
+                        </button>
+                    </div>
+
+                    <div class="d-flex justify-content-between align-items-center">
+                        <button
+                            class="btn btn-secondary rounded-circle p-1 d-flex justify-content-center align-items-center"
+                            style="width: 35px; height: 35px;" onpointerdown="startCommand(14)"
+                            onpointerup="stopCommand(14)">
+                            <span class="material-symbols-outlined fs-5">remove</span>
+                        </button>
+                        <span class="fw-medium">Focus</span>
+                        <button
+                            class="btn btn-secondary rounded-circle p-1 d-flex justify-content-center align-items-center"
+                            style="width: 35px; height: 35px;" onpointerdown="startCommand(13)"
+                            onpointerup="stopCommand(13)">
+                            <span class="material-symbols-outlined fs-5">add</span>
+                        </button>
+                    </div>
+
+                    <div class="d-flex justify-content-between align-items-center">
+                        <button
+                            class="btn btn-secondary rounded-circle p-1 d-flex justify-content-center align-items-center"
+                            style="width: 35px; height: 35px;" onclick="changeIris(-5)">
+                            <span class="material-symbols-outlined fs-5">remove</span>
+                        </button>
+                        <span class="fw-medium">Iris</span>
+                        <button
+                            class="btn btn-secondary rounded-circle p-1 d-flex justify-content-center align-items-center"
+                            style="width: 35px; height: 35px;" onclick="changeIris(5)">
+                            <span class="material-symbols-outlined fs-5">add</span>
+                        </button>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    function startCommand(commandId) {
+        // commandId mapping (example):
+        // 1: UP, 2: DOWN, 3: LEFT, 4: RIGHT
+        // 5: UP-LEFT, 6: UP-RIGHT, 7: DOWN-LEFT, 8: DOWN-RIGHT, 9: AUTO
+        fetch(`/ptz_control/1/start_action/${commandId}`, {
+            method: "GET"
+        });
+    }
+
+    function stopCommand(commandId) {
+        fetch(`/ptz_control/1/end_action/${commandId}`, {
+            method: "GET"
+        });
+    }
+
+    let currentZoom = 0;
+    function changeZoom(delta) {
+        currentZoom += delta;
+        if (currentZoom > 100) currentZoom = 100;
+        if (currentZoom < 0) currentZoom = 0;
+        fetch("/api/ptz/zoom", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                camera: "WEIGHING_RESSISTANCE_CAM",
+                zoom: currentZoom
+            })
+
+        });
+    }
+
+    let currentFocus = 0;
+    function changeFocus(delta) {
+        currentFocus += delta;
+        if (currentFocus > 100) currentFocus = 100;
+        if (currentFocus < 0) currentFocus = 0;
+        // Optional: Implement if backend supports
+    }
+
+    let currentIris = 0;
+    function changeIris(delta) {
+        currentIris += delta;
+        if (currentIris > 100) currentIris = 100;
+        if (currentIris < 0) currentIris = 0;
+        // Optional: Implement if backend supports
+    }
+</script>
+{% endblock %}

@@ -1,0 +1,255 @@
+<!-- AI Model Image Testing Sandbox Modal -->
+<div class="modal fade" id="uploadTestModal" tabindex="-1" aria-labelledby="uploadTestModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-xl modal-dialog-centered">
+        <div class="modal-content shadow-lg border-0">
+            <div class="modal-header bg-dark text-white py-3">
+                <div class="d-flex align-items-center gap-2">
+                    <span class="material-symbols-outlined fs-3 text-primary">biotech</span>
+                    <div>
+                        <h5 class="modal-title fw-bold mb-0" id="uploadTestModalLabel">AI Model Visual Testing Sandbox</h5>
+                        <small class="text-white-50">Upload any ordnance photo to run live inference against RF-DETR models</small>
+                    </div>
+                </div>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-3 p-md-4 bg-light">
+                <!-- Controls Row -->
+                <div class="row g-3 mb-3 align-items-end">
+                    <div class="col-12 col-md-5">
+                        <label class="form-label fw-bold small text-uppercase text-muted mb-1">Select Inspection Model</label>
+                        <select class="form-select form-select-lg shadow-sm" id="testModelSelect">
+                            <option value="primer_assembly" selected>Primer 1A/L: Assembly & Paper Liner & Rubber Ring</option>
+                            <option value="primer_paint">Primer 1A/L: Paint Peeling Defect</option>
+                            <option value="carrier_seal_label">Carrier 6A/L: Explosive Label & Seal</option>
+                            <option value="h2a_seal_label">Box H2A: Explosive Label & Seal</option>
+                            <option value="h2a_rust">Box H2A: Rust Defect</option>
+                            <option value="h2a_inner">Box H2A: Inner Packing (Cotton, Sheet, Slip)</option>
+                            <option value="primer_count">Box H2A: Primer Unit Count</option>
+                        </select>
+                    </div>
+                    <div class="col-12 col-md-4">
+                        <label class="form-label fw-bold small text-uppercase text-muted mb-1">Choose Photo / Image</label>
+                        <input type="file" class="form-control form-control-lg shadow-sm" id="testImageInput" accept="image/*">
+                    </div>
+                    <div class="col-12 col-md-3">
+                        <button type="button" class="btn btn-primary btn-lg w-100 shadow-sm fw-bold d-flex align-items-center justify-content-center gap-2" id="runTestBtn" onclick="runModelTest()">
+                            <span class="spinner-border spinner-border-sm d-none" id="testSpinner"></span>
+                            <span class="material-symbols-outlined fs-5">play_arrow</span>
+                            <span>Run Inspection</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Results Row -->
+                <div class="row g-3">
+                    <!-- Left: Interactive Canvas Viewport -->
+                    <div class="col-12 col-lg-8">
+                        <div class="card border-0 shadow-sm h-100 bg-black">
+                            <div class="card-header bg-dark text-white py-2 d-flex justify-content-between align-items-center">
+                                <span class="small fw-semibold d-flex align-items-center gap-1">
+                                    <span class="material-symbols-outlined fs-6 text-success">visibility</span> Visual Detection Overlay
+                                </span>
+                                <span class="badge bg-secondary font-monospace" id="inferenceTimeBadge">-- ms</span>
+                            </div>
+                            <div class="card-body p-0 d-flex align-items-center justify-content-center position-relative overflow-hidden" style="min-height: 480px; max-height: 560px;">
+                                <div id="canvasPlaceholder" class="text-center text-secondary p-4 drop-zone" style="cursor: pointer;" onclick="document.getElementById('testImageInput').click()">
+                                    <span class="material-symbols-outlined fs-1 mb-2 d-block text-secondary">add_photo_alternate</span>
+                                    <span>Select or drag an image and click <strong>Run Inspection</strong> to see live bounding boxes</span>
+                                </div>
+                                <canvas id="testResultCanvas" class="d-none" style="max-width: 100%; max-height: 560px; object-fit: contain;"></canvas>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Right: Checklist & Detection Table -->
+                    <div class="col-12 col-lg-4 d-flex flex-column gap-3">
+                        <!-- Overall Decision Banner -->
+                        <div class="card border-0 shadow-sm" id="decisionCard">
+                            <div class="card-body text-center py-3">
+                                <span class="text-muted small fw-bold text-uppercase d-block mb-1">Inspection Decision</span>
+                                <h4 class="fw-bold mb-0 text-secondary" id="decisionText">READY TO TEST</h4>
+                            </div>
+                        </div>
+
+                        <!-- Criteria Checklist -->
+                        <div class="card border-0 shadow-sm flex-grow-1">
+                            <div class="card-header bg-white py-2 fw-bold small text-uppercase text-muted">
+                                Criteria Checklist
+                            </div>
+                            <div class="card-body p-2" id="checklistContainer" style="max-height: 200px; overflow-y: auto;">
+                                <div class="text-muted small text-center py-3">No checks loaded yet</div>
+                            </div>
+                        </div>
+
+                        <!-- Detections List -->
+                        <div class="card border-0 shadow-sm flex-grow-1">
+                            <div class="card-header bg-white py-2 fw-bold small text-uppercase text-muted">
+                                Detected Objects (<span id="detCount">0</span>)
+                            </div>
+                            <div class="card-body p-2" id="detectionsList" style="max-height: 200px; overflow-y: auto;">
+                                <div class="text-muted small text-center py-3">No detections yet</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer bg-white border-top py-2 d-flex justify-content-between">
+                <button type="button" class="btn btn-outline-danger rounded-pill px-3 d-flex align-items-center gap-1" data-bs-dismiss="modal" data-bs-toggle="modal" data-bs-target="#videoTestModal">
+                    <span class="material-symbols-outlined fs-5">video_file</span>
+                    <span>Switch to Video Test</span>
+                </button>
+                <button type="button" class="btn btn-secondary rounded-pill px-4" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- AI Video Stream Testing Sandbox Modal -->
+<div class="modal fade" id="videoTestModal" tabindex="-1" aria-labelledby="videoTestModalLabel" aria-hidden="true" data-bs-backdrop="static">
+    <div class="modal-dialog modal-xl modal-dialog-centered">
+        <div class="modal-content shadow-lg border-0">
+            <div class="modal-header bg-dark text-white py-3">
+                <div class="d-flex align-items-center gap-2">
+                    <span class="material-symbols-outlined fs-3 text-danger">smart_display</span>
+                    <div>
+                        <h5 class="modal-title fw-bold mb-0" id="videoTestModalLabel">AI Video Stream Testing Sandbox</h5>
+                        <small class="text-white-50">Upload an inspection video (MP4/AVI/WebM/MOV) to test continuous RF-DETR model detection</small>
+                    </div>
+                </div>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close" onclick="stopVideoProcessing()"></button>
+            </div>
+            <div class="modal-body p-3 p-md-4 bg-light">
+                <!-- Controls Row -->
+                <div class="row g-3 mb-3 align-items-end">
+                    <div class="col-12 col-md-4">
+                        <label class="form-label fw-bold small text-uppercase text-muted mb-1">Select Inspection Model</label>
+                        <select class="form-select form-select-lg shadow-sm" id="videoModelSelect">
+                            <option value="primer_assembly" selected>Primer 1A/L: Assembly & Paper Liner & Rubber Ring</option>
+                            <option value="primer_paint">Primer 1A/L: Paint Peeling Defect</option>
+                            <option value="carrier_seal_label">Carrier 6A/L: Explosive Label & Seal</option>
+                            <option value="h2a_seal_label">Box H2A: Explosive Label & Seal</option>
+                            <option value="h2a_rust">Box H2A: Rust Defect</option>
+                            <option value="h2a_inner">Box H2A: Inner Packing (Cotton, Sheet, Slip)</option>
+                            <option value="primer_count">Box H2A: Primer Unit Count</option>
+                        </select>
+                    </div>
+                    <div class="col-12 col-md-3">
+                        <label class="form-label fw-bold small text-uppercase text-muted mb-1">Choose Video File</label>
+                        <input type="file" class="form-control form-control-lg shadow-sm" id="videoFileInput" accept="video/*,.mp4,.avi,.webm,.mov,.mkv" onchange="onVideoFileSelected(event)">
+                    </div>
+                    <div class="col-12 col-md-2">
+                        <label class="form-label fw-bold small text-uppercase text-muted mb-1">Sample Rate</label>
+                        <select class="form-select form-select-lg shadow-sm" id="videoFpsSelect">
+                            <option value="1">1 FPS</option>
+                            <option value="2">2 FPS</option>
+                            <option value="3" selected>3 FPS (Recommended)</option>
+                            <option value="5">5 FPS</option>
+                        </select>
+                    </div>
+                    <div class="col-12 col-md-3">
+                        <div class="d-flex gap-2">
+                            <button type="button" class="btn btn-danger btn-lg flex-grow-1 shadow-sm fw-bold d-flex align-items-center justify-content-center gap-2" id="playVideoBtn" onclick="toggleVideoProcessing()" disabled>
+                                <span class="material-symbols-outlined fs-5" id="playVideoIcon">play_arrow</span>
+                                <span id="playVideoText">Start Test</span>
+                            </button>
+                            <button type="button" class="btn btn-outline-secondary btn-lg shadow-sm" id="resetVideoBtn" onclick="resetVideoTest()" title="Restart Video">
+                                <span class="material-symbols-outlined fs-5">replay</span>
+                            </button>
+                            <button type="button" class="btn btn-outline-danger btn-lg shadow-sm" id="serverScanBtn" onclick="runServerVideoScan()" title="Full Server-Side Video Scan" disabled>
+                                <span class="material-symbols-outlined fs-5">manage_search</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Video + Live AI Viewport Row -->
+                <div class="row g-3">
+                    <!-- Left: Realtime Video Canvas -->
+                    <div class="col-12 col-lg-8">
+                        <div class="card border-0 shadow-sm h-100 bg-black">
+                            <div class="card-header bg-dark text-white py-2 d-flex justify-content-between align-items-center">
+                                <span class="small fw-semibold d-flex align-items-center gap-1">
+                                    <span class="material-symbols-outlined fs-6 text-danger">fiber_manual_record</span> Live AI Video Detection Stream
+                                </span>
+                                <div class="d-flex align-items-center gap-2">
+                                    <span class="badge bg-secondary font-monospace" id="videoProgressBadge">00:00 / 00:00</span>
+                                    <span class="badge bg-dark border border-secondary font-monospace" id="videoInferenceTimeBadge">-- ms</span>
+                                </div>
+                            </div>
+                            <div class="card-body p-0 d-flex align-items-center justify-content-center position-relative overflow-hidden" style="min-height: 480px; max-height: 560px;">
+                                <div id="videoCanvasPlaceholder" class="text-center text-secondary p-4 drop-zone" style="cursor: pointer;" onclick="document.getElementById('videoFileInput').click()">
+                                    <span class="material-symbols-outlined fs-1 mb-2 d-block text-secondary">video_file</span>
+                                    <span>Select or drag a video file (MP4/AVI/WebM) and click <strong>Start Test</strong> to run continuous detection</span>
+                                </div>
+                                <canvas id="videoResultCanvas" class="d-none" style="max-width: 100%; max-height: 560px; object-fit: contain;"></canvas>
+                                <!-- Offscreen HTML5 Video element for decoding frames reliably -->
+                                <video id="hiddenTestVideo" style="position: absolute; width: 1px; height: 1px; opacity: 0; pointer-events: none;" playsinline muted></video>
+                            </div>
+                            <!-- Video timeline progress bar -->
+                            <div class="card-footer bg-dark p-2 border-top border-secondary">
+                                <div class="progress" style="height: 8px; cursor: pointer;" id="videoProgressBarContainer" onclick="seekVideo(event)">
+                                    <div class="progress-bar bg-danger progress-bar-striped progress-bar-animated" id="videoProgressBar" role="progressbar" style="width: 0%"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Right: Live Decision, Checklist & Detection List -->
+                    <div class="col-12 col-lg-4 d-flex flex-column gap-3">
+                        <!-- Overall Decision Banner -->
+                        <div class="card border-0 shadow-sm" id="videoDecisionCard">
+                            <div class="card-body text-center py-3">
+                                <span class="text-muted small fw-bold text-uppercase d-block mb-1">Current Frame Decision</span>
+                                <h4 class="fw-bold mb-0 text-secondary" id="videoDecisionText">WAITING FOR VIDEO</h4>
+                            </div>
+                        </div>
+
+                        <!-- Criteria Checklist -->
+                        <div class="card border-0 shadow-sm flex-grow-1">
+                            <div class="card-header bg-white py-2 fw-bold small text-uppercase text-muted d-flex justify-content-between align-items-center">
+                                <span>Criteria Checklist</span>
+                                <span class="badge bg-light text-dark border font-monospace" id="videoFrameCounter">Frame 0</span>
+                            </div>
+                            <div class="card-body p-2" id="videoChecklistContainer" style="max-height: 190px; overflow-y: auto;">
+                                <div class="text-muted small text-center py-3">No checks loaded yet</div>
+                            </div>
+                        </div>
+
+                        <!-- Detections List -->
+                        <div class="card border-0 shadow-sm flex-grow-1">
+                            <div class="card-header bg-white py-2 fw-bold small text-uppercase text-muted">
+                                Frame Detections (<span id="videoDetCount">0</span>)
+                            </div>
+                            <div class="card-body p-2" id="videoDetectionsList" style="max-height: 190px; overflow-y: auto;">
+                                <div class="text-muted small text-center py-3">No detections on current frame</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Server Scan Report Row (Hidden until scan run) -->
+                <div class="row g-3 mt-2 d-none" id="serverScanReportSection">
+                    <div class="col-12">
+                        <div class="card border-0 shadow-sm">
+                            <div class="card-header bg-dark text-white py-2 d-flex justify-content-between align-items-center">
+                                <span class="fw-bold small text-uppercase d-flex align-items-center gap-1">
+                                    <span class="material-symbols-outlined fs-5 text-warning">summarize</span> Full Video Scan Summary Report
+                                </span>
+                                <button type="button" class="btn-close btn-close-white btn-sm" onclick="document.getElementById('serverScanReportSection').classList.add('d-none')"></button>
+                            </div>
+                            <div class="card-body p-3" id="serverScanReportBody">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer bg-white border-top py-2 d-flex justify-content-between">
+                <button type="button" class="btn btn-outline-primary rounded-pill px-3 d-flex align-items-center gap-1" data-bs-dismiss="modal" data-bs-toggle="modal" data-bs-target="#uploadTestModal" onclick="stopVideoProcessing()">
+                    <span class="material-symbols-outlined fs-5">upload_file</span>
+                    <span>Switch to Image Test</span>
+                </button>
+                <button type="button" class="btn btn-secondary rounded-pill px-4" data-bs-dismiss="modal" onclick="stopVideoProcessing()">Close</button>
+            </div>
+        </div>
+    </div>
+</div>

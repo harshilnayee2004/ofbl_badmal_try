@@ -1,0 +1,79 @@
+{% extends "admin/base.html" %}
+
+{% block title %}Lot Details (Lot ID: {{ lot_id }}) - Primer Inspection{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1 class="d-flex align-items-center">
+        <span class="material-symbols-outlined me-2 fs-1">inventory_2</span>
+        Lot Details
+    </h1>
+    <a href="/admin/manage_lots" class="btn btn-outline-secondary d-flex align-items-center">
+        <span class="material-symbols-outlined me-2" style="vertical-align: text-bottom;">arrow_back</span> Back
+    </a>
+</div>
+
+<div class="card mb-4 shadow-sm">
+    <div class="card-body" id="lotInfoContainer">
+        <!-- Lot details will be dynamically loaded here -->
+        <div class="text-center text-muted">
+            <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">Loading...</span>
+            </div>
+            <p class="mt-2">Loading Lot Details...</p>
+        </div>
+    </div>
+</div>
+
+<!-- Tabs Navigation -->
+<ul class="nav nav-tabs " id="lotDetailsTabs" role="tablist">
+    <li class="nav-item" role="presentation">
+        <button class="nav-link active" id="box-tab" data-bs-toggle="tab" data-bs-target="#box" type="button" role="tab"
+            aria-controls="box" aria-selected="true">
+            <span class="material-symbols-outlined align-text-bottom me-1" style="font-size: 18px;">box</span>
+            Box
+        </button>
+    </li>
+    <li class="nav-item" role="presentation">
+        <button class="nav-link" id="fuze-tab" data-bs-toggle="tab" data-bs-target="#fuze" type="button" role="tab"
+            aria-controls="fuze" aria-selected="false">
+            <span class="material-symbols-outlined align-text-bottom me-1" style="font-size: 18px;">military_tech</span> Primer
+        </button>
+    </li>
+</ul>
+
+<!-- Tabs Content -->
+<div class="tab-content" id="lotDetailsTabsContent">
+    <!-- Box Tab -->
+    <div class="tab-pane fade show active" id="box" role="tabpanel" aria-labelledby="box-tab">
+        <div class="card shadow-sm border-0">
+            <div class="card-body">
+                <div class="accordion accordion-flush" id="boxAccordion">
+                    <!-- Box items will be populated here -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Primer Tab -->
+    <div class="tab-pane fade" id="fuze" role="tabpanel" aria-labelledby="fuze-tab">
+
+        <div class="card shadow-sm border-0">
+            <div class="card-body">
+                <div class="accordion accordion-flush" id="fuzeAccordion">
+                    <!-- Primer items will be populated here -->
+                </div>
+
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    const currentLotIdStr = "{{ lot_id if lot_id is not none else '' }}";
+    const currentLotId = currentLotIdStr ? parseInt(currentLotIdStr) : null;
+</script>
+<script src="{{ url_for('static', path='/js/admin/lot_details.js') }}"></script>
+{% endblock %}

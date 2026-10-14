@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Prompt Inspector | MIPL AI</title>
+    <link rel="stylesheet" href="{{ url_for('static', path='/styles.css') }}">
+    <link href="{{ url_for('static', path='/material-symbols.css') }}" rel="stylesheet">
+    <link href="{{ url_for('static', path='/css2.css') }}" rel="stylesheet">
+
+</head>
+
+<body class="dark-theme">
+    <div class="background-blobs">
+        <div class="blob blob-1"></div>
+        <div class="blob blob-2"></div>
+        <div class="blob blob-3"></div>
+    </div>
+
+    <main class="container">
+        <header>
+            <h1>AI Prompt <span class="gradient-text">Inspector</span></h1>
+            <p class="subtitle">Evaluate and measure model performance in real-time</p>
+        </header>
+
+        <section class="main-content">
+            <div class="input-panel glass-card">
+                <div class="panel-header">
+                    <span class="icon">🔍</span>
+                    <h2>Configuration</h2>
+                </div>
+
+                <form id="inference-form">
+                    <div class="form-group">
+                        <label for="image-input">Upload Image</label>
+                        <div class="file-upload-wrapper" id="drop-zone">
+                            <input type="file" id="image-input" accept="image/*" hidden>
+                            <div class="upload-placeholder">
+                                <span class="upload-icon">📁</span>
+                                <p>Click or drag image to upload</p>
+                            </div>
+                            <img id="image-preview" src="#" alt="Preview" class="hidden">
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="prompt-input">Prompt</label>
+                        <textarea id="prompt-input" placeholder="Enter your prompt here..." required></textarea>
+                    </div>
+
+                    <button type="submit" id="run-btn" class="primary-btn">
+                        <span>Run Inference</span>
+                        <div class="loader hidden"></div>
+                    </button>
+                </form>
+            </div>
+
+            <div class="output-panel glass-card">
+                <div class="panel-header">
+                    <span class="icon">📊</span>
+                    <h2>Output & Metrics</h2>
+                </div>
+
+                <div class="metrics-grid">
+                    <div class="metric-card">
+                        <span class="metric-label">Latency</span>
+                        <span class="metric-value" id="latency-value">-- ms</span>
+                    </div>
+                    <div class="metric-card">
+                        <span class="metric-label">Status</span>
+                        <span class="metric-value status-indicator" id="status-value">Ready</span>
+                    </div>
+                </div>
+
+                <div class="result-area">
+                    <label>Result</label>
+                    <div id="output-display" class="output-box">
+                        <span class="placeholder-text">Run inference to see results</span>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <script src="{{ url_for('static', path='/script.js') }}"></script>
+</body>
+
+</html>

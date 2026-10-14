@@ -1,0 +1,57 @@
+Photo: C:\Users\harsh\Downloads\WhatsApp Image 2026-10-12 at 3.47.38 PM.jpeg  size=1600x900
+
+=== carrier_seal_label  (ai_models/Carrier6AL_Explosive_Seal.pth)
+    config: threshold=0.8 variant=small resolution=None
+    config expects classes: ['explosiveLabel', 'sealed']
+    model class_names: ['sealed-explosive-carrier6AL', 'explosiveLabel', 'sealed']
+    0 detections at conf>=0.25  (0.9s incl. load)
+
+=== h2a_seal_label  (ai_models/H2A_Explosive_Seal.pth)
+    config: threshold=0.85 variant=small resolution=None
+    config expects classes: ['explosiveLabel', 'sealed']
+    model class_names: ['sealed2', 'explosiveLabel', 'sealed']
+    0 detections at conf>=0.25  (0.8s incl. load)
+
+=== h2a_rust  (ai_models/h2a_rust_checkpoint_best_total.pth)
+    config: threshold=0.3 variant=large resolution=None
+    config expects classes: ['H2A-rust']
+    model class_names: ['H2A-rust', 'H2A-rust']
+    0 detections at conf>=0.25  (1.2s incl. load)
+
+=== h2a_inner  (ai_models/Inner_H2A_Box.pth)
+    config: threshold=0.9 variant=small resolution=None
+    config expects classes: ['CottonSheet', 'Diaphgarm', 'PaperSlip', 'WoodenSheet']
+    model class_names: ['PaparSlip-WoodenSheet-7RpN--m69m', 'CottonSheet', 'Diaphgarm', 'PaperSlip', 'WoodenSheet']
+    0 detections at conf>=0.25  (0.8s incl. load)
+
+=== primer_assembly  (ai_models/Primer.pth)
+    config: threshold=0.6 variant=small resolution=None
+    config expects classes: ['improper_assembly', 'improper_paper_liner', 'proper_assembly', 'proper_paper_liner', 'rubber_present']
+    model class_names: ['primer', 'improper_assembly', 'improper_paper_liner', 'proper_assembly', 'proper_paper_liner', 'rubber_present']
+    7 detections at conf>=0.25  (0.8s incl. load)
+      id=4   proper_paper_liner           conf=0.97  box=[769, 423, 803, 460]
+      id=4   proper_paper_liner           conf=0.97  box=[806, 491, 830, 527]
+      id=4   proper_paper_liner           conf=0.96  box=[768, 292, 802, 327]
+      id=4   proper_paper_liner           conf=0.96  box=[805, 358, 829, 394]
+      id=4   proper_paper_liner           conf=0.95  box=[749, 492, 767, 528]
+      id=4   proper_paper_liner           conf=0.95  box=[749, 360, 765, 396]
+      id=1   improper_assembly            conf=0.92  box=[742, 593, 844, 618]
+
+=== primer_count  (ai_models/Primer_Count.pth)
+    config: threshold=0.7 variant=small resolution=512
+    config expects classes: ['Primer']
+    model class_names: ['Primer']
+    0 detections at conf>=0.25  (0.8s incl. load)
+
+=== primer_paint  (ai_models/Primer_Paint_checkpoint_best_total.pth)
+    config: threshold=0.3 variant=small resolution=512
+    config expects classes: ['Paint_Peal']
+    model class_names: ['Paint_Peal']
+    7 detections at conf>=0.25  (0.9s incl. load)
+      id=1   ?                            conf=0.38  box=[837, 441, 844, 465]
+      id=1   ?                            conf=0.34  box=[752, 362, 766, 397]
+      id=1   ?                            conf=0.32  box=[826, 590, 839, 603]
+      id=1   ?                            conf=0.30  box=[803, 406, 814, 443]
+      id=1   ?                            conf=0.29  box=[833, 424, 841, 462]
+      id=1   ?                            conf=0.27  box=[804, 302, 814, 323]
+      id=1   ?                            conf=0.26  box=[749, 490, 765, 524]

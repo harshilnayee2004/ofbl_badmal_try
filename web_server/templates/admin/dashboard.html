@@ -1,0 +1,528 @@
+{% extends "admin/base.html" %}
+
+{% block title %}Dashboard - Primer Inspection{% endblock %}
+
+
+{% block content %}
+<h1 class="mb-4 d-flex align-items-center"><span class="material-symbols-outlined me-1 fs-1">dashboard</span>Dashboard</h1>
+
+<!-- Status Cards -->
+<div class="row g-3 mb-4">
+    <div class="col-xl col-md-4 col-sm-6">
+        <div class="card border-0 shadow-sm h-100 bg-white" style="border-left: 4px solid #6c757d !important;">
+            <div class="card-body p-3">
+                <div class="d-flex justify-content-between align-items-start">
+                    <div>
+                        <div class="text-uppercase text-muted fw-bold" style="font-size: 0.72rem; letter-spacing: 0.05em;">System</div>
+                        <h6 class="card-title text-dark fw-bold mb-1">Total Users</h6>
+                        <div class="h2 mb-0 fw-bold font-monospace text-dark" id="totalUsersStat">
+                            <span class="placeholder-glow"><span class="placeholder col-6"></span></span>
+                        </div>
+                    </div>
+                    <div class="p-2 rounded bg-secondary bg-opacity-10 text-secondary">
+                        <span class="material-symbols-outlined fs-4">group</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-xl col-md-4 col-sm-6">
+        <div class="card border-0 shadow-sm h-100 bg-white" style="border-left: 4px solid #fd7e14 !important;">
+            <div class="card-body p-3">
+                <div class="d-flex justify-content-between align-items-start">
+                    <div>
+                        <div class="text-uppercase text-muted fw-bold" style="font-size: 0.72rem; letter-spacing: 0.05em;">Production</div>
+                        <h6 class="card-title text-dark fw-bold mb-1">Total Lots</h6>
+                        <div class="h2 mb-0 fw-bold font-monospace text-warning text-dark" id="totalLotsStat">
+                            <span class="placeholder-glow"><span class="placeholder col-6"></span></span>
+                        </div>
+                    </div>
+                    <div class="p-2 rounded bg-warning bg-opacity-10 text-warning">
+                        <span class="material-symbols-outlined fs-4">inventory_2</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-xl col-md-4 col-sm-6">
+        <div class="card border-0 shadow-sm h-100 bg-white" style="border-left: 4px solid #0d6efd !important;">
+            <div class="card-body p-3">
+                <div class="d-flex justify-content-between align-items-start">
+                    <div>
+                        <div class="text-uppercase text-muted fw-bold" style="font-size: 0.72rem; letter-spacing: 0.05em;">Carriers</div>
+                        <h6 class="card-title text-dark fw-bold mb-1">Total Carriers</h6>
+                        <div class="h2 mb-0 fw-bold font-monospace text-primary" id="totalCarriersStat">
+                            <span class="placeholder-glow"><span class="placeholder col-6"></span></span>
+                        </div>
+                    </div>
+                    <div class="p-2 rounded bg-primary bg-opacity-10 text-primary">
+                        <span class="material-symbols-outlined fs-4">deployed_code</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-xl col-md-6 col-sm-6">
+        <div class="card border-0 shadow-sm h-100 bg-white" style="border-left: 4px solid #198754 !important;">
+            <div class="card-body p-3">
+                <div class="d-flex justify-content-between align-items-start">
+                    <div>
+                        <div class="text-uppercase text-muted fw-bold" style="font-size: 0.72rem; letter-spacing: 0.05em;">Boxes</div>
+                        <h6 class="card-title text-dark fw-bold mb-1">Total Boxes</h6>
+                        <div class="h2 mb-0 fw-bold font-monospace text-success" id="totalBoxesStat">
+                            <span class="placeholder-glow"><span class="placeholder col-6"></span></span>
+                        </div>
+                    </div>
+                    <div class="p-2 rounded bg-success bg-opacity-10 text-success">
+                        <span class="material-symbols-outlined fs-4">package_2</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-xl col-md-6 col-sm-6">
+        <div class="card border-0 shadow-sm h-100 bg-white" style="border-left: 4px solid #d63384 !important;">
+            <div class="card-body p-3">
+                <div class="d-flex justify-content-between align-items-start">
+                    <div>
+                        <div class="text-uppercase text-muted fw-bold" style="font-size: 0.72rem; letter-spacing: 0.05em;">Primer Inspection</div>
+                        <h6 class="card-title text-dark fw-bold mb-1">Total Primers</h6>
+                        <div class="h2 mb-0 fw-bold font-monospace text-dark" id="totalFuzesStat">
+                            <span class="placeholder-glow"><span class="placeholder col-6"></span></span>
+                        </div>
+                    </div>
+
+                    <div class="p-2 rounded text-white" style="background-color: #d63384;">
+                        <span class="material-symbols-outlined fs-4">military_tech</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="container-fluid">
+    <!-- Stats Charts -->
+    <div class="row g-2">
+        <!-- CPU & RAM -->
+        <div class="col-md-7 col-sm-12 ">
+            <div class="row g-2">
+                <div class="col-12">
+                    <h3 class="m-0 p-0 fw-bold">System Performance</h3>
+                </div>
+                <div class="col-md-6 col-sm-6">
+                    <div class="card shadow-sm h-100">
+                        <div class="card-header bg-white">
+                            <span class="material-symbols-outlined me-1" style="vertical-align: bottom;">memory</span>
+                            System Performance
+                        </div>
+                        <div class="card-body p-2">
+                            <canvas id="cpuRamChart" width="100%"></canvas>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Network -->
+                <div class="col-md-6 col-sm-6 ">
+                    <div class="card shadow-sm h-100">
+                        <div class="card-header bg-white">
+                            <span class="material-symbols-outlined me-1"
+                                style="vertical-align: bottom;">network_check</span>
+                            Network Traffic
+                        </div>
+                        <div class="card-body p-2">
+                            <canvas id="networkChart" width="100%"></canvas>
+                        </div>
+                    </div>
+                </div>
+                <!-- GPU Usage -->
+                <div class="col-md-6 col-sm-6 ">
+                    <div class="card shadow-sm h-100">
+                        <div class="card-header bg-white">
+                            <span class="material-symbols-outlined me-1"
+                                style="vertical-align: bottom;">grid_view</span>
+                            GPU Utilization
+                        </div>
+                        <div class="card-body p-2">
+                            <canvas id="gpuChart" width="100%"></canvas>
+                        </div>
+                    </div>
+                </div>
+                <!-- Disk Usage -->
+                <div class="col-md-6 col-sm-6 ">
+                    <div class="card shadow-sm h-100">
+                        <div class="card-header bg-white">
+                            <span class="material-symbols-outlined me-1" style="vertical-align: bottom;">storage</span>
+                            Disk Usage
+                        </div>
+                        <div class="card-body p-2">
+                            <canvas id="diskChart" width="100%"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-5 col-sm-12">
+            <div class="row g-2">
+                <div class="col-12">
+                    <h3 class="m-0 p-0">Devices Availability</h3>
+                </div>
+                <div class="col-12 ">
+                    <div class="card shadow-sm h-100">
+                        <!-- <div class="card-header bg-white"> -->
+                        <ul class="list-group" id="camera-status-list">
+                            <li class="list-group-item">
+                                <span class="material-symbols-outlined me-1"
+                                    style="vertical-align: bottom;">videocam</span>
+                                Cameras
+                            </li>
+                        </ul>
+                        <ul class="list-group">
+
+                        </ul>
+                        <!-- </div> -->
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+</div>
+<!-- Chart.js -->
+<script src="{{ url_for('static', path='/js/chart.js') }}"></script>
+
+<script>
+    // --- Chart Configurations ---
+    const commonOptions = {
+        responsive: true,
+        plugins: {
+            legend: { position: 'top' },
+        },
+        scales: {
+            x: { display: false }, // Hide x-axis labels for cleaner look on time series
+            y: { beginAtZero: true, max: 100 }
+        },
+        elements: {
+            point: { radius: 0 } // Hide points for smooth line
+        }
+    };
+
+    // CPU & RAM Chart
+    const cpuRamCtx = document.getElementById('cpuRamChart').getContext('2d');
+    const cpuRamChart = new Chart(cpuRamCtx, {
+        type: 'line',
+        data: {
+            labels: Array(20).fill(''),
+            datasets: [
+                {
+                    label: 'CPU %',
+                    data: Array(20).fill(0),
+                    borderColor: '#0d6efd', // Bootstrap Primary
+                    backgroundColor: 'rgba(13, 110, 253, 0.1)',
+                    fill: true,
+                    tension: 0.4
+                },
+                {
+                    label: 'RAM %',
+                    data: Array(20).fill(0),
+                    borderColor: '#dc3545', // Bootstrap Danger
+                    backgroundColor: 'rgba(220, 53, 69, 0.1)',
+                    fill: true,
+                    tension: 0.4
+                }
+            ]
+        },
+        options: commonOptions
+    });
+
+    // Network Chart
+    const networkCtx = document.getElementById('networkChart').getContext('2d');
+    const networkChart = new Chart(networkCtx, {
+        type: 'line',
+        data: {
+            labels: Array(20).fill(''),
+            datasets: [
+                {
+                    label: 'Download (MB/s)',
+                    data: Array(20).fill(0),
+                    borderColor: '#198754', // Bootstrap Success
+                    backgroundColor: 'rgba(25, 135, 84, 0.1)',
+                    fill: true,
+                    tension: 0.4
+                },
+                {
+                    label: 'Upload (MB/s)',
+                    data: Array(20).fill(0),
+                    borderColor: '#ffc107', // Bootstrap Warning
+                    backgroundColor: 'rgba(255, 193, 7, 0.1)',
+                    fill: true,
+                    tension: 0.4
+                }
+            ]
+        },
+        options: {
+            ...commonOptions,
+            scales: {
+                x: { display: false },
+                y: { beginAtZero: true } // Auto scale for network
+            }
+        }
+    });
+
+    // GPU Chart
+    const gpuCtx = document.getElementById('gpuChart').getContext('2d');
+    const gpuChart = new Chart(gpuCtx, {
+        type: 'line',
+        data: {
+            labels: Array(20).fill(''),
+            datasets: [] // Datasets will be dynamic based on GPU count
+        },
+        options: commonOptions
+    });
+
+    // Disk Chart (Doughnut)
+    // Disk Chart
+    const diskCtx = document.getElementById('diskChart').getContext('2d');
+    const diskChart = new Chart(diskCtx, {
+        type: 'line',
+        data: {
+            labels: Array(20).fill(''),
+            datasets: [{
+                label: 'Disk Usage %',
+                data: Array(20).fill(0),
+                borderColor: '#6c757d', // Bootstrap Secondary
+                backgroundColor: 'rgba(108, 117, 125, 0.1)',
+                fill: true,
+                tension: 0.4
+            }]
+        },
+        options: commonOptions
+    });
+
+
+    // --- WebSocket Logic ---
+    const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
+    const wsUrl = `${protocol}//${window.location.host}/ws/admin_dashboard`;
+    let socket;
+
+    function connectWebSocket() {
+        socket = new WebSocket(wsUrl);
+
+        socket.onopen = function () {
+            console.log("Connected to Admin Dashboard WebSocket");
+        };
+
+        socket.onmessage = function (event) {
+            const data = JSON.parse(event.data);
+            if (data.type === "system_stats" && data.object) {
+                updateCharts(data.object);
+                updateMotorStatus(data.object);
+            }
+        };
+
+        socket.onclose = function () {
+            console.log("Disconnected. Reconnecting in 3 seconds...");
+            setTimeout(connectWebSocket, 3000);
+        };
+
+        socket.onerror = function (error) {
+            console.error("WebSocket Error:", error);
+            socket.close();
+        };
+    }
+
+    function updateCharts(stats) {
+        // Update CPU & RAM
+        updateLineChart(cpuRamChart, [stats.cpu_percent, stats.ram_percent]);
+
+        // Update Network
+        updateLineChart(networkChart, [stats.download_MBps, stats.upload_MBps]);
+
+        // Update Disk
+        // Update Disk
+        updateLineChart(diskChart, [stats.disk_percent]);
+
+        // Update GPU
+        if (stats.gpus && stats.gpus.length > 0) {
+            // Initialize datasets if empty
+            if (gpuChart.data.datasets.length === 0) {
+                stats.gpus.forEach((gpu, index) => {
+                    const color = index === 0 ? '#6610f2' : '#fd7e14'; // Purple or Orange
+                    gpuChart.data.datasets.push({
+                        label: `GPU ${gpu.gpu_index} (%)`,
+                        data: Array(20).fill(0),
+                        borderColor: color,
+                        backgroundColor: color + '1A', // 10% opacity
+                        fill: true,
+                        tension: 0.4
+                    });
+                });
+            }
+
+            // Collect new data points
+            const newGpuData = stats.gpus.map(gpu => gpu.utilization_percent);
+            updateLineChart(gpuChart, newGpuData);
+        }
+    }
+
+    function updateLineChart(chart, newDataPoints) {
+        // Remove oldest label
+        chart.data.labels.shift();
+        chart.data.labels.push('');
+
+        // Update each dataset
+        chart.data.datasets.forEach((dataset, index) => {
+            dataset.data.shift();
+            dataset.data.push(newDataPoints[index]);
+        });
+
+        chart.update('none'); // 'none' mode for capitalization performance
+    }
+
+    function renderMotorStatus(status) {
+        if (status) {
+            return '<span class="badge bg-success">Connected</span>';
+        }
+        return '<span class="badge bg-danger">Disconnected</span>';
+    }
+
+    function updateMotorStatus(data) {
+        const carrierStatus = data.carrier_turn_motor_status !== undefined ? data.carrier_turn_motor_status : (data.cerrier_turn_motor_status !== undefined ? data.cerrier_turn_motor_status : data.carrier_motor_status);
+        const primerBoxStatus = data.primer_box_turn_motor_status !== undefined ? data.primer_box_turn_motor_status : (data.box_motor_status || data.fuze_motor_status);
+        const carrierEl = document.getElementById('carrier-motor-status');
+        const primerBoxEl = document.getElementById('primer-box-motor-status');
+        if (carrierEl && carrierStatus !== undefined) {
+            carrierEl.innerHTML = renderMotorStatus(carrierStatus);
+        }
+        if (primerBoxEl && primerBoxStatus !== undefined) {
+            primerBoxEl.innerHTML = renderMotorStatus(primerBoxStatus);
+        }
+    }
+
+    // Start connection
+    connectWebSocket();
+
+</script>
+
+{% endblock %}
+
+
+{% block scripts %}
+<script>
+    let cameraTable = null;
+    let ws = null;
+
+    function renderStatusBadge(status) {
+        if (status === 'Online') {
+            return '<span class="badge bg-success">Online</span>';
+        }
+        if (status === 'Reconnecting...') {
+            return '<span class="badge bg-warning text-dark">Reconnecting...</span>';
+        }
+        return '<span class="badge bg-danger">Offline</span>';
+    }
+
+
+    function renderCameraList(cameras) {
+        const listContainer = document.getElementById('camera-status-list');
+        // Keep the header (first child)
+        const header = listContainer.firstElementChild;
+        listContainer.innerHTML = '';
+        listContainer.appendChild(header);
+
+        cameras.forEach((camera, index) => {
+            const li = document.createElement('li');
+            li.className = 'list-group-item d-flex justify-content-between align-items-center';
+            li.innerHTML = `
+                <div>${index + 1}. ${camera.position}</div>
+                <div id="status-div-${camera.id}">${renderStatusBadge(camera.status)}</div>
+            `;
+            listContainer.appendChild(li);
+        });
+        listContainer.innerHTML += `<li class="list-group-item">
+                                <span class="material-symbols-outlined me-1"
+                                    style="vertical-align: bottom;">electric_bolt </span>
+                                Motors
+                            </li>
+                            <li class="list-group-item d-flex justify-content-between align-items-center">
+                                <div>1. CARRIER_TURN_MOTOR</div>
+                                <div id="carrier-motor-status"><span class="badge bg-secondary">Checking...</span></div>
+                            </li>
+                            <li class="list-group-item d-flex justify-content-between align-items-center">
+                                <div>2. PRIMER_BOX_TURN_MOTOR</div>
+                                <div id="primer-box-motor-status"><span class="badge bg-secondary">Checking...</span></div>
+                            </li>`
+    }
+
+
+    function connectCameraStatusWS() {
+        let protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+        ws = new WebSocket(`${protocol}//${window.location.host}/ws/camera_status`);
+
+        ws.onopen = () => {
+            console.log("Camera status WS connected");
+        };
+
+        ws.onmessage = (event) => {
+            try {
+                const msg = JSON.parse(event.data);
+                document.getElementById(`status-div-${msg.camera_id}`).innerHTML = renderStatusBadge(msg.status);
+            } catch (e) {
+                console.error("WS message error:", e);
+            }
+        };
+
+        ws.onclose = () => {
+            console.warn("Camera status WS disconnected. Reconnecting...");
+            setTimeout(connectCameraStatusWS, 3000);
+        };
+
+        ws.onerror = (err) => {
+            console.error("Camera status WS error:", err);
+            ws.close();
+        };
+    }
+
+    async function fetchDashboardCounts() {
+        try {
+            const response = await fetch('/admin/api/stats/counts');
+            if (response.ok) {
+                const data = await response.json();
+                document.getElementById('totalUsersStat').textContent = data.users.toLocaleString();
+                document.getElementById('totalLotsStat').textContent = data.lots.toLocaleString();
+                document.getElementById('totalCarriersStat').textContent = (data.carriers || 0).toLocaleString();
+                document.getElementById('totalBoxesStat').textContent = data.boxes.toLocaleString();
+                document.getElementById('totalFuzesStat').textContent = data.fuzes.toLocaleString();
+            }
+        } catch (error) {
+            console.error('Error fetching dashboard counts:', error);
+            document.getElementById('totalUsersStat').textContent = 'N/A';
+            document.getElementById('totalLotsStat').textContent = 'N/A';
+            document.getElementById('totalCarriersStat').textContent = 'N/A';
+            document.getElementById('totalBoxesStat').textContent = 'N/A';
+            document.getElementById('totalFuzesStat').textContent = 'N/A';
+        }
+    }
+
+    document.addEventListener("DOMContentLoaded", function () {
+        connectCameraStatusWS();
+        fetchCameraList();
+        fetchDashboardCounts();
+    });
+
+    async function fetchCameraList() {
+        try {
+            const response = await fetch('/api/cameras');
+            if (!response.ok) {
+                throw new Error('Failed to fetch cameras');
+            }
+            const data = await response.json();
+            console.log(data.data);
+            renderCameraList(data.data);
+        } catch (error) {
+            console.error('Error:', error);
+            alert('Error fetching cameras');
+        }
+    }
+</script>
+{% endblock %}

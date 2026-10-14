@@ -1,0 +1,6 @@
+1. Change path of lot details
+2. Delete tables from database
+username : postgres
+password : admin
+database name : ofbl
+3. Start The Application

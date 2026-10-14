@@ -1,0 +1,79 @@
+"""Turns raw model detections into PASS/DEFECT + checklist results. No torch needed."""
+import yaml
+
+
+def load_config(path):
+    with open(path, encoding="utf-8") as f:
+        return yaml.safe_load(f)["models"]
+
+
+def _classes(ck):
+    """-> (good_classes, bad_classes) for a check."""
+    r = ck["rule"]
+    if r in ("required", "count"):
+        return {ck["class"]}, set()
+    if r == "forbidden":
+        return set(), {ck["class"]}
+    return set(ck["good"]), set(ck["bad"])
+
+
+def evaluate(mcfg, dets):
+    """dets: [{box,score,class_name}] -> {"detections": [...], "checks": [...], "overall": "PASS"|"DEFECT"}"""
+    ignore = set(mcfg.get("ignore_classes", []))
+    dets = [dict(d) for d in dets if d["class_name"] not in ignore and d["score"] >= mcfg["threshold"]]
+    by_cls = {}
+    for d in dets:
+        by_cls.setdefault(d["class_name"], []).append(d)
+
+    checks, extra = [], []
+    for ck in mcfg["checks"]:
+        good, bad = _classes(ck)
+        seen_good = [d for c in good for d in by_cls.get(c, [])]
+        seen_bad = [d for c in bad for d in by_cls.get(c, [])]
+        status, reason, missing_cls = "PASS", "", None
+        r = ck["rule"]
+        if r == "required":
+            need = ck.get("min_count", 1)
+            if len(seen_good) < need:
+                status, reason, missing_cls = "FAIL", f"found {len(seen_good)}, need {need}", f"missing_{ck['class']}"
+        elif r == "forbidden":
+            if seen_bad:
+                status, reason = "FAIL", f"{len(seen_bad)} found"
+        elif r == "pair":
+            if seen_bad:
+                status, reason = "FAIL", "defect class seen"
+            elif not seen_good:
+                status, reason, missing_cls = "FAIL", "nothing detected", f"not_detected_{ck['id']}"
+        elif r == "count":
+            if len(seen_good) != ck["count"]:
+                status, reason = "FAIL", f"counted {len(seen_good)}, expected {ck['count']}"
+        for d in seen_good + seen_bad:
+            d["check_id"] = ck["id"]
+            d["status"] = "DEFECT" if (d["class_name"] in bad or status == "FAIL") else "PASS"
+        if missing_cls:  # no box to draw, but it must appear in the defect table
+            extra.append({"box": None, "score": 0, "class_name": missing_cls, "status": "DEFECT", "check_id": ck["id"]})
+        conf = max([d["score"] for d in seen_good + seen_bad], default=None)
+        checks.append({"id": ck["id"], "label": ck["label"], "status": status, "reason": reason, "score": conf})
+
+    dets = [d for d in dets if "check_id" in d] + extra   # drop boxes not tied to any check
+    overall = "DEFECT" if any(c["status"] == "FAIL" for c in checks) else "PASS"
+    return {"detections": dets, "checks": checks, "overall": overall}
+
+
+def checklist(mcfg):
+    return [{"id": c["id"], "label": c["label"]} for c in mcfg["checks"]]
+
+
+def to_messages(result, frame_w, frame_h):
+    """Messages the browser overlay understands."""
+    msgs = [{"type": "detections", "frame_w": frame_w, "frame_h": frame_h, "detections": result["detections"]}]
+    msgs += [{"type": "checklist", "id": c["id"], "status": c["status"]} for c in result["checks"]]
+    return msgs
+
+
+def only_check(result, check_id):
+    """Keep just one check (a camera sequence inspects one parameter at a time)."""
+    checks = [c for c in result["checks"] if c["id"] == check_id]
+    return {"detections": [d for d in result["detections"] if d.get("check_id") == check_id],
+            "checks": checks,
+            "overall": "DEFECT" if any(c["status"] == "FAIL" for c in checks) else "PASS"}

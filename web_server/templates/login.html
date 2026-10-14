@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login - Primer Inspection Admin</title>
+
+    <!-- Bootstrap 5 CSS (Local) -->
+    <link href="{{ url_for('static', path='/css/bootstrap.min.css') }}" rel="stylesheet">
+    <!-- Material Symbols Outlined (Local) -->
+    <link href="{{ url_for('static', path='/css/material-symbols.css') }}" rel="stylesheet">
+    <link href="{{ url_for('static', path='/css/css2.css') }}" rel="stylesheet">
+
+</head>
+
+<body class="bg-light">
+    <div class="container d-flex justify-content-center align-items-center min-vh-100">
+        <div class="card shadow-lg p-4" style="max-width: 400px; width: 100%;">
+            <div class="text-center mb-4 w-100 d-flex flex-column align-items-center justify-content-center">
+                <div class="w-25 d-flex align-items-center justify-content-center mb-3">
+                    <img src="{{ url_for('static', path='/img/logo.png') }}" alt="Logo" class="img-fluid w-100">
+                </div>
+                <h1 class="fw-bold">Login</h1>
+            </div>
+
+            {% if error %}
+            <div class="alert alert-danger text-center" role="alert">
+                {{ error }}
+            </div>
+            {% endif %}
+
+            <form action="/auth/login" method="POST" class="login-form" id="loginForm">
+                <div class="mb-4">
+                    <label for="email" class="form-label">Email Address</label>
+                    <div class="input-group">
+                        <span class="input-group-text bg-transparent border-end-0">
+                            <span class="material-symbols-outlined text-muted">mail</span>
+                        </span>
+                        <input type="email" class="form-control border-start-0 ps-0" id="email" name="email"
+                            placeholder="admin@example.com" required>
+                    </div>
+                </div>
+
+                <div class="mb-4">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <label for="password" class="form-label">Password</label>
+                    </div>
+                    <div class="input-group">
+                        <span class="input-group-text bg-transparent border-end-0">
+                            <span class="material-symbols-outlined text-muted">lock</span>
+                        </span>
+                        <input type="password" class="form-control border-start-0 ps-0" id="password" name="password"
+                            placeholder="••••••••" required>
+                    </div>
+                </div>
+
+
+                <div class="d-flex gap-2 mb-4">
+                    <button type="submit" class="btn btn-primary flex-grow-1">Login</button>
+                </div>
+
+                <div class="text-center mt-3">
+                    <p class="mb-0 text-muted small">© 2026 MIPL AI Inspection Engine. All rights reserved.</p>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Bootstrap 5 Bundle with Popper (Local) -->
+    <script src="{{ url_for('static', path='/js/bootstrap.bundle.min.js') }}"></script>
+    <script src="{{ url_for('static', path='/js/login.js') }}"></script>
+</body>
+
+</html>

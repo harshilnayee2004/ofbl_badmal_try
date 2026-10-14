@@ -1,0 +1,444 @@
+{% extends "user/base.html" %}
+
+{% block title %}Inspection Dashboard - Ordnance Quality Assurance{% endblock %}
+
+{% block content %}
+<div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3 mb-md-4">
+    <div>
+        <h1 class="h3 mb-0 fw-bold">Inspection Dashboard</h1>
+        <p class="text-muted small mb-0">Inspector: <span class="font-monospace text-dark fw-semibold">{{ user.email }}</span></p>
+    </div>
+    <div class="d-flex align-items-center">
+        <span class="badge bg-white text-dark border shadow-sm px-3 py-2 d-inline-flex align-items-center">
+            <span class="material-symbols-outlined me-1 text-success fs-6">schedule</span>
+            <span id="live-clock" class="font-monospace">Live Status</span>
+        </span>
+    </div>
+</div>
+
+<!-- 4-Metric Summary Cards -->
+<div class="row g-2 g-md-3 mb-4">
+    <!-- Carriers -->
+    <div class="col-12 col-sm-6 col-xl-3">
+        <div class="card stats-card border-0 shadow-sm h-100 bg-white" style="border-left: 4px solid #0d6efd !important;">
+            <div class="card-body p-3">
+                <div class="d-flex justify-content-between align-items-start">
+                    <div>
+                        <div class="text-uppercase text-muted fw-bold" style="font-size: 0.7rem; letter-spacing: 0.05em;">Carrier Inspection</div>
+                        <h6 class="card-title text-dark fw-bold mb-1 small">Carriers Inspected</h6>
+                        <div class="h2 mb-0 fw-bold font-monospace text-primary metric-value">{{ carriers_count }}</div>
+                    </div>
+                    <div class="p-2 rounded bg-primary bg-opacity-10 text-primary metric-icon-wrap">
+                        <span class="material-symbols-outlined fs-3">inventory_2</span>
+                    </div>
+                </div>
+                <div class="mt-2 text-muted small">Carrier 6A/L Containers</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Boxes -->
+    <div class="col-12 col-sm-6 col-xl-3">
+        <div class="card stats-card border-0 shadow-sm h-100 bg-white" style="border-left: 4px solid #198754 !important;">
+            <div class="card-body p-3">
+                <div class="d-flex justify-content-between align-items-start">
+                    <div>
+                        <div class="text-uppercase text-muted fw-bold" style="font-size: 0.7rem; letter-spacing: 0.05em;">Box Inspection</div>
+                        <h6 class="card-title text-dark fw-bold mb-1 small">Boxes Inspected</h6>
+                        <div class="h2 mb-0 fw-bold font-monospace text-success metric-value">{{ boxes_count }}</div>
+                    </div>
+                    <div class="p-2 rounded bg-success bg-opacity-10 text-success metric-icon-wrap">
+                        <span class="material-symbols-outlined fs-3">package_2</span>
+                    </div>
+                </div>
+                <div class="mt-2 text-muted small">H2A / M-104 / G-70 Boxes</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Primers -->
+    <div class="col-12 col-sm-6 col-xl-3">
+        <div class="card stats-card border-0 shadow-sm h-100 bg-white" style="border-left: 4px solid #d63384 !important;">
+            <div class="card-body p-3">
+                <div class="d-flex justify-content-between align-items-start">
+                    <div>
+                        <div class="text-uppercase text-muted fw-bold" style="font-size: 0.7rem; letter-spacing: 0.05em;">Primer Inspection</div>
+                        <h6 class="card-title text-dark fw-bold mb-1 small">Primers Inspected</h6>
+                        <div class="h2 mb-0 fw-bold font-monospace text-dark metric-value">{{ fuzes_count }}</div>
+                    </div>
+                    <div class="p-2 rounded text-white metric-icon-wrap" style="background-color: #d63384;">
+                        <span class="material-symbols-outlined fs-3">military_tech</span>
+                    </div>
+                </div>
+                <div class="mt-2 text-muted small">Primer 1A/L Units</div>
+            </div>
+        </div>
+    </div>
+
+
+    <!-- Total Lots -->
+    <div class="col-12 col-sm-6 col-xl-3">
+        <div class="card stats-card border-0 shadow-sm h-100 bg-white" style="border-left: 4px solid #fd7e14 !important;">
+            <div class="card-body p-3">
+                <div class="d-flex justify-content-between align-items-start">
+                    <div>
+                        <div class="text-uppercase text-muted fw-bold" style="font-size: 0.7rem; letter-spacing: 0.05em;">Production Lots</div>
+                        <h6 class="card-title text-dark fw-bold mb-1 small">Lots Created</h6>
+                        <div class="h2 mb-0 fw-bold font-monospace text-dark metric-value">{{ lots_count }}</div>
+                    </div>
+                    <div class="p-2 rounded bg-warning bg-opacity-10 text-warning metric-icon-wrap">
+                        <span class="material-symbols-outlined fs-3">receipt_long</span>
+                    </div>
+                </div>
+                <div class="mt-2 text-muted small">Active &amp; Historical Lots</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row g-3">
+    <!-- Lot Inspection Queues (Left Column) -->
+    <div class="col-12 col-lg-8">
+        <div class="d-flex flex-column gap-3">
+            
+            <!-- 1. Carrier 6A/L Lots -->
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-white py-3 border-bottom d-flex flex-wrap justify-content-between align-items-center gap-2">
+                    <div class="d-flex align-items-center">
+                        <span class="material-symbols-outlined text-primary me-2 fs-5">inventory_2</span>
+                        <h5 class="card-title mb-0 fw-bold fs-6">Carrier 6A/L Inspection Queue</h5>
+                    </div>
+                    <span class="badge bg-primary bg-opacity-10 text-primary font-monospace">{{ carrier_lots|length }} Active</span>
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle mb-0 text-nowrap">
+                            <thead class="table-light text-uppercase text-muted" style="font-size: 0.72rem;">
+                                <tr>
+                                    <th class="ps-3">Lot Number</th>
+                                    <th>Carrier Type</th>
+                                    <th>Created At</th>
+                                    <th>Status</th>
+                                    <th class="text-end pe-3">Action</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% if carrier_lots %}
+                                {% for lot in carrier_lots %}
+                                <tr>
+                                    <td class="ps-3 fw-bold font-monospace text-dark">{{ lot.lot_number }}</td>
+                                    <td><span class="badge bg-light text-dark border">{{ lot.carrier_type or 'Carrier 6A/L' }}</span></td>
+                                    <td class="text-muted small font-monospace">{{ lot.created_at.strftime('%Y-%m-%d %H:%M') if lot.created_at else 'N/A' }}</td>
+                                    <td>
+                                        <span class="badge {% if lot.carrier_inspection_status == 'Pending' %}bg-secondary{% else %}bg-warning text-dark{% endif %} font-monospace">
+                                            {{ lot.carrier_inspection_status }}
+                                        </span>
+                                    </td>
+                                    <td class="text-end pe-3">
+                                        <a href="/user/inspect_carrier?lot_id={{ lot.id }}" class="btn btn-sm {% if lot.carrier_inspection_status == 'Pending' %}btn-outline-primary{% else %}btn-primary text-white{% endif %} px-2 px-sm-3 d-inline-flex align-items-center">
+                                            <span class="material-symbols-outlined fs-6 me-1">{% if lot.carrier_inspection_status == 'Pending' %}play_arrow{% else %}resume{% endif %}</span>
+                                            {% if lot.carrier_inspection_status == 'Pending' %}Start{% else %}Resume{% endif %}
+                                        </a>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                                {% else %}
+                                <tr>
+                                    <td colspan="5" class="text-center text-muted py-4 small">
+                                        <span class="material-symbols-outlined d-block text-muted opacity-50 mb-1" style="font-size: 24px;">task_alt</span>
+                                        No pending or active Carrier 6A/L inspections
+                                    </td>
+                                </tr>
+                                {% endif %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 2. Box H2A Lots -->
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-white py-3 border-bottom d-flex flex-wrap justify-content-between align-items-center gap-2">
+                    <div class="d-flex align-items-center">
+                        <span class="material-symbols-outlined text-success me-2 fs-5">package_2</span>
+                        <h5 class="card-title mb-0 fw-bold fs-6">Box H2A &amp; Packaging Queue</h5>
+                    </div>
+                    <span class="badge bg-success bg-opacity-10 text-success font-monospace">{{ box_lots|length }} Active</span>
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle mb-0 text-nowrap">
+                            <thead class="table-light text-uppercase text-muted" style="font-size: 0.72rem;">
+                                <tr>
+                                    <th class="ps-3">Lot Number</th>
+                                    <th>Box Type</th>
+                                    <th>Created At</th>
+                                    <th>Status</th>
+                                    <th class="text-end pe-3">Action</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% if box_lots %}
+                                {% for lot in box_lots %}
+                                <tr>
+                                    <td class="ps-3 fw-bold font-monospace text-dark">{{ lot.lot_number }}</td>
+                                    <td><span class="badge bg-light text-dark border">{{ lot.box_type or 'H2A' }}</span></td>
+                                    <td class="text-muted small font-monospace">{{ lot.created_at.strftime('%Y-%m-%d %H:%M') if lot.created_at else 'N/A' }}</td>
+                                    <td>
+                                        <span class="badge {% if lot.box_inspection_status == 'Pending' %}bg-secondary{% else %}bg-warning text-dark{% endif %} font-monospace">
+                                            {{ lot.box_inspection_status }}
+                                        </span>
+                                    </td>
+                                    <td class="text-end pe-3">
+                                        <a href="/user/inspect_box?lot_id={{ lot.id }}" class="btn btn-sm {% if lot.box_inspection_status == 'Pending' %}btn-outline-success{% else %}btn-success text-white{% endif %} px-2 px-sm-3 d-inline-flex align-items-center">
+                                            <span class="material-symbols-outlined fs-6 me-1">{% if lot.box_inspection_status == 'Pending' %}play_arrow{% else %}resume{% endif %}</span>
+                                            {% if lot.box_inspection_status == 'Pending' %}Start{% else %}Resume{% endif %}
+                                        </a>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                                {% else %}
+                                <tr>
+                                    <td colspan="5" class="text-center text-muted py-4 small">
+                                        <span class="material-symbols-outlined d-block text-muted opacity-50 mb-1" style="font-size: 24px;">task_alt</span>
+                                        No pending or active box inspections
+                                    </td>
+                                </tr>
+                                {% endif %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 3. Primer Electric 1A/L Lots -->
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-white py-3 border-bottom d-flex flex-wrap justify-content-between align-items-center gap-2">
+                    <div class="d-flex align-items-center">
+                        <span class="material-symbols-outlined me-2 fs-5" style="color: #d63384;">military_tech</span>
+                        <h5 class="card-title mb-0 fw-bold fs-6">Primer Electric 1A/L Inspection Queue</h5>
+                    </div>
+                    <span class="badge bg-opacity-10 font-monospace" style="background-color: #fce8f3; color: #d63384;">{{ fuze_lots|length }} Active</span>
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle mb-0 text-nowrap">
+                            <thead class="table-light text-uppercase text-muted" style="font-size: 0.72rem;">
+                                <tr>
+                                    <th class="ps-3">Lot Number</th>
+                                    <th>Ordnance Type</th>
+                                    <th>Created At</th>
+                                    <th>Status</th>
+                                    <th class="text-end pe-3">Action</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% if fuze_lots %}
+                                {% for lot in fuze_lots %}
+                                <tr>
+                                    <td class="ps-3 fw-bold font-monospace text-dark">{{ lot.lot_number }}</td>
+                                    <td><span class="badge bg-light text-dark border">{{ lot.fuze_type or 'Primer Electric 1A/L' }}</span></td>
+                                    <td class="text-muted small font-monospace">{{ lot.created_at.strftime('%Y-%m-%d %H:%M') if lot.created_at else 'N/A' }}</td>
+                                    <td>
+                                        <span class="badge {% if lot.fuze_inspection_status == 'Pending' %}bg-secondary{% else %}bg-warning text-dark{% endif %} font-monospace">
+                                            {{ lot.fuze_inspection_status }}
+                                        </span>
+                                    </td>
+                                    <td class="text-end pe-3">
+                                        <a href="/user/inspect_fuze?lot_id={{ lot.id }}" class="btn btn-sm {% if lot.fuze_inspection_status == 'Pending' %}btn-outline-dark{% else %}btn-dark text-white{% endif %} px-2 px-sm-3 d-inline-flex align-items-center">
+                                            <span class="material-symbols-outlined fs-6 me-1">{% if lot.fuze_inspection_status == 'Pending' %}play_arrow{% else %}resume{% endif %}</span>
+                                            {% if lot.fuze_inspection_status == 'Pending' %}Start{% else %}Resume{% endif %}
+                                        </a>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                                {% else %}
+                                <tr>
+                                    <td colspan="5" class="text-center text-muted py-4 small">
+                                        <span class="material-symbols-outlined d-block text-muted opacity-50 mb-1" style="font-size: 24px;">task_alt</span>
+                                        No pending or active primer inspections
+                                    </td>
+                                </tr>
+
+                                {% endif %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- Hardware & Devices Availability (Right Column) -->
+    <div class="col-12 col-lg-4">
+        <div class="card border-0 shadow-sm sticky-top" style="top: 75px;">
+            <div class="card-header bg-white py-3 border-bottom">
+                <div class="d-flex align-items-center">
+                    <span class="material-symbols-outlined text-secondary me-2 fs-5">sensors</span>
+                    <h5 class="card-title mb-0 fw-bold fs-6">Hardware Availability</h5>
+                </div>
+            </div>
+            <div class="card-body p-0">
+                <ul class="list-group list-group-flush" id="camera-status-list">
+                    <li class="list-group-item bg-light text-uppercase fw-bold text-muted" style="font-size: 0.72rem; letter-spacing: 0.05em;">
+                        <span class="material-symbols-outlined me-1" style="vertical-align: bottom; font-size: 16px;">videocam</span>
+                        Inspection Cameras
+                    </li>
+                    <li class="list-group-item text-center text-muted py-3" id="camera-loading-spinner">
+                        <div class="spinner-border text-primary spinner-border-sm me-2" role="status">
+                            <span class="visually-hidden">Loading...</span>
+                        </div>
+                        Connecting vision sensors...
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    let ws = null;
+    let adminWs = null;
+
+    function renderStatusBadge(status) {
+        if (status === 'Online') {
+            return '<span class="badge bg-success font-monospace">Online</span>';
+        }
+        if (status === 'Reconnecting...') {
+            return '<span class="badge bg-warning text-dark font-monospace">Reconnecting...</span>';
+        }
+        return '<span class="badge bg-danger font-monospace">Offline</span>';
+    }
+
+    function renderCameraList(cameras) {
+        const listContainer = document.getElementById('camera-status-list');
+        const header = listContainer.firstElementChild;
+        listContainer.innerHTML = '';
+        listContainer.appendChild(header);
+
+        if (cameras && cameras.length > 0) {
+            cameras.forEach((camera, index) => {
+                const li = document.createElement('li');
+                li.className = 'list-group-item d-flex justify-content-between align-items-center py-2';
+                li.innerHTML = `
+                    <div class="small fw-semibold text-dark">${index + 1}. ${camera.position || 'Camera ' + (index+1)}</div>
+                    <div id="status-div-${camera.id}">${renderStatusBadge(camera.status)}</div>
+                `;
+                listContainer.appendChild(li);
+            });
+        }
+
+        listContainer.innerHTML += `
+            <li class="list-group-item bg-light text-uppercase fw-bold text-muted mt-2" style="font-size: 0.72rem; letter-spacing: 0.05em;">
+                <span class="material-symbols-outlined me-1" style="vertical-align: bottom; font-size: 16px;">electric_bolt</span>
+                Automation Motors
+            </li>
+            <li class="list-group-item d-flex justify-content-between align-items-center py-2">
+                <div class="small fw-semibold text-dark">1. CARRIER_TURN_MOTOR</div>
+                <div id="carrier-motor-status">
+                    <span class="badge bg-secondary font-monospace">Checking...</span>
+                </div>
+            </li>
+            <li class="list-group-item d-flex justify-content-between align-items-center py-2">
+                <div class="small fw-semibold text-dark">2. PRIMER_BOX_TURN_MOTOR</div>
+                <div id="primer-box-motor-status">
+                    <span class="badge bg-secondary font-monospace">Checking...</span>
+                </div>
+            </li>
+        `;
+    }
+
+    function connectCameraStatusWS() {
+        let protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+        ws = new WebSocket(`${protocol}//${window.location.host}/ws/camera_status`);
+
+        ws.onopen = () => {
+            console.log("Camera status WS connected");
+        };
+
+        ws.onmessage = (event) => {
+            try {
+                const msg = JSON.parse(event.data);
+                const statusDiv = document.getElementById(`status-div-${msg.camera_id}`);
+                if (statusDiv) {
+                    statusDiv.innerHTML = renderStatusBadge(msg.status);
+                }
+            } catch (e) {
+                console.error("WS message error:", e);
+            }
+        };
+
+        ws.onclose = () => {
+            setTimeout(connectCameraStatusWS, 3000);
+        };
+    }
+
+    function renderMotorStatus(status) {
+        if (status) {
+            return '<span class="badge bg-success font-monospace">Connected</span>';
+        }
+        return '<span class="badge bg-danger font-monospace">Disconnected</span>';
+    }
+
+    function updateMotorStatus(data) {
+        const carrierLabel = document.getElementById('carrier-motor-status');
+        const primerBoxLabel = document.getElementById('primer-box-motor-status');
+        
+        const carrierStatus = data.carrier_turn_motor_status !== undefined ? data.carrier_turn_motor_status : (data.cerrier_turn_motor_status !== undefined ? data.cerrier_turn_motor_status : data.carrier_motor_status);
+        const primerBoxStatus = data.primer_box_turn_motor_status !== undefined ? data.primer_box_turn_motor_status : (data.box_motor_status || data.fuze_motor_status);
+
+        if (carrierLabel && carrierStatus !== undefined) {
+            carrierLabel.innerHTML = renderMotorStatus(carrierStatus);
+        }
+        if (primerBoxLabel && primerBoxStatus !== undefined) {
+            primerBoxLabel.innerHTML = renderMotorStatus(primerBoxStatus);
+        }
+    }
+
+
+    function connectAdminWebSocket() {
+        const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
+        const wsUrl = `${protocol}//${window.location.host}/ws/admin_dashboard`;
+        adminWs = new WebSocket(wsUrl);
+
+        adminWs.onmessage = function (event) {
+            const data = JSON.parse(event.data);
+            if (data.type === "system_stats" && data.object) {
+                updateMotorStatus(data.object);
+            }
+        };
+
+        adminWs.onclose = function () {
+            setTimeout(connectAdminWebSocket, 3000);
+        };
+    }
+
+    async function fetchCameraList() {
+        try {
+            const response = await fetch('/api/cameras');
+            if (!response.ok) {
+                throw new Error('Failed to fetch cameras');
+            }
+            const data = await response.json();
+            renderCameraList(data.data);
+        } catch (error) {
+            console.error('Error fetching cameras:', error);
+            const spinner = document.getElementById('camera-loading-spinner');
+            if (spinner) {
+                spinner.innerHTML = '<span class="text-danger small">Offline (Mock active)</span>';
+            }
+            renderCameraList([]);
+        }
+    }
+
+    document.addEventListener("DOMContentLoaded", function () {
+        fetchCameraList().then(() => {
+            connectCameraStatusWS();
+            connectAdminWebSocket();
+        });
+    });
+</script>
+{% endblock %}

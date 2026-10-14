@@ -6,8 +6,43 @@ from .rules import load_config, evaluate, checklist, to_messages
 
 BASE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))     # ai_server/
 CFG = load_config(os.path.join(os.path.dirname(os.path.abspath(__file__)), "models_config.yaml"))
-registry = ModelRegistry(CFG, base_dir=BASE, max_loaded=int(os.getenv("MAX_LOADED_MODELS", "2")))
+registry = ModelRegistry(CFG, base_dir=BASE, max_loaded=int(os.getenv("MAX_LOADED_MODELS", "3")))
 router = APIRouter(prefix="/inspect", tags=["inspection"])
+
+# 3 Unified Component Stages
+STAGE_MODELS = {
+    "stage_carrier": ["carrier_seal_label", "carrier_rust"],
+    "stage_box": ["h2a_seal_label", "h2a_rust", "h2a_inner", "primer_count"],
+    "stage_primer": ["primer_assembly", "primer_paint"]
+}
+
+
+def resolve_model_keys(key: str):
+    """Returns list of model keys for a unified stage, or a single model key."""
+    if key in STAGE_MODELS:
+        return STAGE_MODELS[key]
+    if key in CFG:
+        return [key]
+    return []
+
+
+def evaluate_frame_models(keys, frame, w, h):
+    """Runs one or multiple RF-DETR models on a single frame and aggregates detections and checks."""
+    all_dets = []
+    all_checks = []
+    overall = "PASS"
+
+    for k in keys:
+        if k in CFG:
+            res = evaluate(CFG[k], registry.detect(k, frame))
+            all_dets.extend(res.get("detections", []))
+            all_checks.extend(res.get("checks", []))
+            if res.get("overall") != "PASS":
+                overall = "REJECT"
+
+    msgs = [{"type": "detections", "frame_w": w, "frame_h": h, "detections": all_dets}]
+    msgs += [{"type": "checklist", "id": c["id"], "status": c["status"]} for c in all_checks]
+    return {"overall": overall, "messages": msgs, "checks": all_checks}
 
 
 @router.get("/models")
@@ -17,36 +52,42 @@ def models():
 
 @router.get("/{key}/checklist")
 def get_checklist(key: str):
-    if key not in CFG:
-        raise HTTPException(404, "unknown model")
-    return checklist(CFG[key])
+    keys = resolve_model_keys(key)
+    if not keys:
+        raise HTTPException(404, "unknown model or stage")
+    cl = []
+    for k in keys:
+        cl.extend(checklist(CFG[k]))
+    return cl
 
 
 @router.post("/{key}")
 async def inspect(key: str, image: UploadFile = File(...)):
-    """Upload one frame -> messages for the browser overlay (detections + checklist)."""
-    if key not in CFG:
-        raise HTTPException(404, "unknown model")
+    """Upload one frame -> messages for browser overlay (detections + checklist)."""
+    keys = resolve_model_keys(key)
+    if not keys:
+        raise HTTPException(404, "unknown model or stage")
+
     import cv2, numpy as np
     frame = cv2.imdecode(np.frombuffer(await image.read(), np.uint8), cv2.IMREAD_COLOR)
     if frame is None:
         raise HTTPException(400, "not an image")
     h, w = frame.shape[:2]
-    result = evaluate(CFG[key], registry.detect(key, frame))
-    return {"overall": result["overall"], "messages": to_messages(result, w, h), "checks": result["checks"]}
+    return evaluate_frame_models(keys, frame, w, h)
 
 
 @router.post("/{key}/video")
 async def inspect_video(key: str, video: UploadFile = File(...), sample_fps: float = 1.0, max_frames: int = 150):
     """Upload a video file -> sample frames every N seconds -> run RF-DETR on each.
-    Each sampled result includes:
-      - frame_image: base64 JPEG of the actual captured frame (browser renders this)
-      - messages: bounding box detections with pixel coords
-      - checks: pass/fail per criteria
-      - overall: PASS or REJECT for that frame
+    Supports either an individual model key or one of the 3 unified stages:
+      - stage_carrier (Seal + Rust)
+      - stage_box (Seal + Rust + Inner Fitments + Count)
+      - stage_primer (Assembly/Liner/Ring + Paint Peel)
     """
-    if key not in CFG:
-        raise HTTPException(404, "unknown model")
+    keys = resolve_model_keys(key)
+    if not keys:
+        raise HTTPException(404, "unknown model or stage")
+
     import cv2, tempfile, base64
 
     suffix = os.path.splitext(video.filename or ".mp4")[1] or ".mp4"
@@ -74,14 +115,13 @@ async def inspect_video(key: str, video: UploadFile = File(...), sample_fps: flo
 
             if frame_idx % step == 0:
                 h, w = frame.shape[:2]
-                res = evaluate(CFG[key], registry.detect(key, frame))
+                res = evaluate_frame_models(keys, frame, w, h)
                 timestamp_sec = round(frame_idx / video_fps, 2)
 
                 if res.get("overall") != "PASS":
                     overall_verdict = "REJECT"
 
-                # Encode frame as base64 JPEG so the browser can render it visually.
-                # Downscale to max 960px wide to keep JSON payload manageable.
+                # Downscale to max 960px wide to keep JSON payload manageable
                 thumb = frame
                 max_w = 960
                 if w > max_w:
@@ -94,9 +134,9 @@ async def inspect_video(key: str, video: UploadFile = File(...), sample_fps: flo
                     "frame_index": frame_idx,
                     "timestamp": timestamp_sec,
                     "overall": res.get("overall"),
-                    "messages": to_messages(res, w, h),
+                    "messages": res.get("messages", []),
                     "checks": res.get("checks", []),
-                    "frame_image": frame_b64,   # base64 JPEG — browser draws boxes on top of this
+                    "frame_image": frame_b64,
                     "frame_w": w,
                     "frame_h": h,
                 })

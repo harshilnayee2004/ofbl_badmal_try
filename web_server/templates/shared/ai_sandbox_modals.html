@@ -18,13 +18,21 @@
                     <div class="col-12 col-md-5">
                         <label class="form-label fw-bold small text-uppercase text-muted mb-1">Select Inspection Model</label>
                         <select class="form-select form-select-lg shadow-sm" id="testModelSelect">
-                            <option value="primer_assembly" selected>Primer 1A/L: Assembly & Paper Liner & Rubber Ring</option>
-                            <option value="primer_paint">Primer 1A/L: Paint Peeling Defect</option>
-                            <option value="carrier_seal_label">Carrier 6A/L: Explosive Label & Seal</option>
-                            <option value="h2a_seal_label">Box H2A: Explosive Label & Seal</option>
-                            <option value="h2a_rust">Box H2A: Rust Defect</option>
-                            <option value="h2a_inner">Box H2A: Inner Packing (Cotton, Sheet, Slip)</option>
-                            <option value="primer_count">Box H2A: Primer Unit Count</option>
+                            <optgroup label="⭐ Complete Component Inspection (Unified)">
+                                <option value="stage_carrier">1. Carrier 6A/L: Complete Inspection (Seal, Label, Rust)</option>
+                                <option value="stage_box">2. Box H2A: Complete Inspection (Seal, Label, Rust, Packing, Count)</option>
+                                <option value="stage_primer" selected>3. Primer 1A/L: Complete Inspection (Assembly, Liner, Ring, Paint)</option>
+                            </optgroup>
+                            <optgroup label="Individual Sub-Models">
+                                <option value="carrier_seal_label">Carrier 6A/L: Explosive Label & Seal</option>
+                                <option value="carrier_rust">Carrier 6A/L: Rust Defect</option>
+                                <option value="h2a_seal_label">Box H2A: Explosive Label & Seal</option>
+                                <option value="h2a_rust">Box H2A: Rust Defect</option>
+                                <option value="h2a_inner">Box H2A: Inner Packing (Cotton, Sheet, Slip)</option>
+                                <option value="primer_count">Box H2A: Primer Unit Count</option>
+                                <option value="primer_assembly">Primer 1A/L: Assembly & Paper Liner & Rubber Ring</option>
+                                <option value="primer_paint">Primer 1A/L: Paint Peeling Defect</option>
+                            </optgroup>
                         </select>
                     </div>
                     <div class="col-12 col-md-4">
@@ -124,13 +132,21 @@
                     <div class="col-12 col-md-4">
                         <label class="form-label fw-bold small text-uppercase text-muted mb-1">Select Inspection Model</label>
                         <select class="form-select form-select-lg shadow-sm" id="videoModelSelect">
-                            <option value="primer_assembly" selected>Primer 1A/L: Assembly & Paper Liner & Rubber Ring</option>
-                            <option value="primer_paint">Primer 1A/L: Paint Peeling Defect</option>
-                            <option value="carrier_seal_label">Carrier 6A/L: Explosive Label & Seal</option>
-                            <option value="h2a_seal_label">Box H2A: Explosive Label & Seal</option>
-                            <option value="h2a_rust">Box H2A: Rust Defect</option>
-                            <option value="h2a_inner">Box H2A: Inner Packing (Cotton, Sheet, Slip)</option>
-                            <option value="primer_count">Box H2A: Primer Unit Count</option>
+                            <optgroup label="⭐ Complete Component Inspection (Unified)">
+                                <option value="stage_carrier">1. Carrier 6A/L: Complete Inspection (Seal, Label, Rust)</option>
+                                <option value="stage_box">2. Box H2A: Complete Inspection (Seal, Label, Rust, Packing, Count)</option>
+                                <option value="stage_primer" selected>3. Primer 1A/L: Complete Inspection (Assembly, Liner, Ring, Paint)</option>
+                            </optgroup>
+                            <optgroup label="Individual Sub-Models">
+                                <option value="carrier_seal_label">Carrier 6A/L: Explosive Label & Seal</option>
+                                <option value="carrier_rust">Carrier 6A/L: Rust Defect</option>
+                                <option value="h2a_seal_label">Box H2A: Explosive Label & Seal</option>
+                                <option value="h2a_rust">Box H2A: Rust Defect</option>
+                                <option value="h2a_inner">Box H2A: Inner Packing (Cotton, Sheet, Slip)</option>
+                                <option value="primer_count">Box H2A: Primer Unit Count</option>
+                                <option value="primer_assembly">Primer 1A/L: Assembly & Paper Liner & Rubber Ring</option>
+                                <option value="primer_paint">Primer 1A/L: Paint Peeling Defect</option>
+                            </optgroup>
                         </select>
                     </div>
                     <div class="col-12 col-md-3">

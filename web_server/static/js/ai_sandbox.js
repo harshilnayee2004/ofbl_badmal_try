@@ -470,7 +470,7 @@ async function sendCurrentVideoFrameToAI() {
         }
 
         const modelSelect = document.getElementById('videoModelSelect');
-        const modelKey = modelSelect ? modelSelect.value : 'primer_assembly';
+        const modelKey = modelSelect ? modelSelect.value : 'stage_primer';
         const formData = new FormData();
         formData.append('image', blob, 'video_frame.jpg');
 
@@ -578,7 +578,7 @@ async function runServerVideoScan() {
     }
 
     const modelSelect = document.getElementById('videoModelSelect');
-    const modelKey = modelSelect ? modelSelect.value : 'primer_assembly';
+    const modelKey = modelSelect ? modelSelect.value : 'stage_primer';
     const fpsSelect = document.getElementById('videoFpsSelect');
     const sampleFps = fpsSelect ? fpsSelect.value : '2';
 

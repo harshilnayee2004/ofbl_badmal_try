@@ -74,3 +74,12 @@ models:
     threshold: 0.30
     checks:
       - {id: paint_peel, label: "Free of paint peeling", rule: forbidden, class: Paint_Peal}
+
+  carrier_rust:
+    stage: carrier
+    path: ai_models/carrier_rust_checkpoint_best_total.pth
+    variant: large
+    threshold: 0.50
+    checks:
+      - {id: carrier_rust, label: "Carrier free of rust", rule: forbidden, class: rust}
+

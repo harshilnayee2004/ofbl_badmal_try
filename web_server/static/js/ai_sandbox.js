@@ -261,6 +261,19 @@ function onVideoFileSelected(event) {
     videoElement.load();
 }
 
+async function loadSampleVideo(url, name) {
+    try {
+        const resp = await fetch(url);
+        if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+        const blob = await resp.blob();
+        const file = new File([blob], (name || "sample") + ".mp4", { type: "video/mp4" });
+        onVideoFileSelected(file);
+    } catch (err) {
+        console.error("Could not load sample video:", err);
+        alert("Failed to load sample video: " + err.message);
+    }
+}
+
 function toggleVideoProcessing() {
     if (!videoElement) return;
 
@@ -274,8 +287,16 @@ function toggleVideoProcessing() {
 function startVideoProcessing() {
     if (!videoElement) return;
 
+    if (videoElement.error) {
+        runServerVideoScan();
+        return;
+    }
+
     if (videoElement.paused) {
-        videoElement.play().catch(err => console.warn('Video play prevented:', err));
+        videoElement.play().catch(err => {
+            console.warn('Video play prevented or unsupported:', err);
+            runServerVideoScan();
+        });
     }
 
     isVideoPlaying = true;

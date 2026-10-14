@@ -134,7 +134,16 @@
                         </select>
                     </div>
                     <div class="col-12 col-md-3">
-                        <label class="form-label fw-bold small text-uppercase text-muted mb-1">Choose Video File</label>
+                        <div class="d-flex justify-content-between align-items-center mb-1">
+                            <label class="form-label fw-bold small text-uppercase text-muted mb-0">Choose Video</label>
+                            <div class="dropdown">
+                                <a class="small text-decoration-none dropdown-toggle fw-bold text-primary" href="#" role="button" data-bs-toggle="dropdown">Sample Videos</a>
+                                <ul class="dropdown-menu dropdown-menu-end shadow">
+                                    <li><a class="dropdown-item small" href="#" onclick="loadSampleVideo('/static/sample_videos/primer_inspection_sample.mp4', 'Primer Inspection Sample'); return false;">Primer 1A/L Sample</a></li>
+                                    <li><a class="dropdown-item small" href="#" onclick="loadSampleVideo('/static/sample_videos/box_inspection_sample.mp4', 'Box Inspection Sample'); return false;">Box H2A Sample</a></li>
+                                </ul>
+                            </div>
+                        </div>
                         <input type="file" class="form-control form-control-lg shadow-sm" id="videoFileInput" accept="video/*,.mp4,.avi,.webm,.mov,.mkv" onchange="onVideoFileSelected(event)">
                     </div>
                     <div class="col-12 col-md-2">

@@ -385,7 +385,7 @@ function runVideoRenderLoop() {
 
     const now = performance.now();
     const fpsSelect = document.getElementById('videoFpsSelect');
-    const targetFps = fpsSelect ? parseInt(fpsSelect.value) || 3 : 3;
+    const targetFps = fpsSelect ? parseInt(fpsSelect.value) || 1 : 1;
     const minInterval = 1000 / targetFps;
 
     if (!isProcessingFrame && (now - lastInferenceTime >= minInterval)) {

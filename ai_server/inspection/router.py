@@ -37,7 +37,7 @@ async def inspect(key: str, image: UploadFile = File(...)):
 
 
 @router.post("/{key}/video")
-async def inspect_video(key: str, video: UploadFile = File(...), sample_fps: float = 2.0, max_frames: int = 150):
+async def inspect_video(key: str, video: UploadFile = File(...), sample_fps: float = 1.0, max_frames: int = 150):
     """Upload a video file -> sample frames every N seconds -> run RF-DETR on each.
     Each sampled result includes:
       - frame_image: base64 JPEG of the actual captured frame (browser renders this)

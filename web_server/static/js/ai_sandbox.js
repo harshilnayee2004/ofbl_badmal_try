@@ -165,147 +165,29 @@ let lastInferenceTime = 0;
 let currentVideoDetections = [];
 let videoFrameCount = 0;
 
-// ── Step-by-step mode state ──────────────────────────────────────────────────
-let isStepByStepRunning = false;
-let stepStopRequested    = false;
+// ── Continuous Playback & Snapshot Loop (Video plays smoothly without pause) ──
+function runContinuousVideoLoop() {
+    if (!isVideoPlaying || !videoElement) return;
 
-/** Resolves after `ms` milliseconds. */
-function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
+    // Render bounding boxes over current video position
+    renderVideoFrame();
+    updateVideoTimeline();
 
-/**
- * Seeks the video element to `t` seconds and waits until the frame is ready.
- * Returns a promise that resolves on the `seeked` event.
- */
-function seekAndWait(t) {
-    return new Promise((resolve) => {
-        const onSeeked = () => {
-            videoElement.removeEventListener('seeked', onSeeked);
-            resolve();
-        };
-        videoElement.addEventListener('seeked', onSeeked);
-        videoElement.currentTime = t;
-    });
-}
+    // Check interval to capture frame snapshot (default: 1 FPS = every 1000ms)
+    const now = performance.now();
+    const fpsSelect = document.getElementById('videoFpsSelect');
+    const targetFps = fpsSelect ? parseInt(fpsSelect.value) || 1 : 1;
+    const minIntervalMs = 1000 / targetFps;
 
-/** Capture the current video frame to a Blob (JPEG). Returns null on failure. */
-function captureVideoFrameBlob() {
-    return new Promise((resolve) => {
-        const w = videoElement.videoWidth  || 1280;
-        const h = videoElement.videoHeight || 720;
-        const off = document.createElement('canvas');
-        off.width = w; off.height = h;
-        try {
-            off.getContext('2d').drawImage(videoElement, 0, 0, w, h);
-        } catch (e) {
-            resolve(null); return;           // video not decodable in browser
-        }
-        off.toBlob(resolve, 'image/jpeg', 0.88);
-    });
-}
-
-/**
- * Core step-by-step loop.
- * Pauses the video, then walks through it one frame at a time:
- *   seek → capture → AI → show result → pause so officer can read → next
- */
-async function runStepByStepLoop() {
-    if (!videoElement || !videoFile) return;
-
-    // Guard: if browser cannot decode, go straight to server scan
-    if (videoElement.error) { runServerVideoScan(); return; }
-
-    // Wait until metadata is ready
-    if (!videoElement.duration) {
-        await new Promise(res => { videoElement.addEventListener('loadedmetadata', res, { once: true }); });
+    if (!isProcessingFrame && (now - lastInferenceTime >= minIntervalMs) && !videoElement.paused && !videoElement.ended) {
+        sendCurrentVideoFrameToAI();
     }
 
-    isStepByStepRunning = true;
-    stepStopRequested   = false;
-    videoElement.pause();
-
-    const fpsSelect   = document.getElementById('videoFpsSelect');
-    const stepSec     = 1.0 / (parseInt(fpsSelect?.value) || 1);   // e.g. 1 FPS → 1.0s step
-    const modelSelect = document.getElementById('videoModelSelect');
-    const modelKey    = modelSelect ? modelSelect.value : 'primer_assembly';
-
-    const duration       = videoElement.duration;
-    let   currentTimeSec = 0;
-    videoFrameCount      = 0;
-
-    const progressBadge  = document.getElementById('videoProgressBadge');
-    const inferenceBadge = document.getElementById('videoInferenceTimeBadge');
-    const counter        = document.getElementById('videoFrameCounter');
-
-    const fmt = (s) => {
-        const m = Math.floor(s / 60).toString().padStart(2, '0');
-        const sc = Math.floor(s % 60).toString().padStart(2, '0');
-        return `${m}:${sc}`;
-    };
-
-    while (isStepByStepRunning && !stepStopRequested && currentTimeSec <= duration) {
-
-        // ── 1. Seek & wait for frame ─────────────────────────────────
-        await seekAndWait(currentTimeSec);
-        updateVideoTimeline();
-        videoFrameCount++;
-        if (counter) counter.innerText = `Frame #${videoFrameCount}`;
-        if (progressBadge) progressBadge.innerText = `Analyzing ${fmt(currentTimeSec)} …`;
-
-        // ── 2. Capture frame ─────────────────────────────────────────
-        const blob = await captureVideoFrameBlob();
-        if (!blob) {
-            // Browser cannot decode — fallback to full server scan
-            stopVideoProcessing();
-            runServerVideoScan();
-            return;
-        }
-
-        // ── 3. Send to AI and await result ───────────────────────────
-        const fd = new FormData();
-        fd.append('image', blob, 'frame.jpg');
-        const t0 = performance.now();
-        try {
-            const res = await fetch(`/ai_server/inspect/${modelKey}`, { method: 'POST', body: fd });
-            if (res.ok) {
-                const data = await res.json();
-                const latency = Math.round(performance.now() - t0);
-                if (inferenceBadge) inferenceBadge.innerText = `${latency} ms`;
-
-                // ── 4. Render bounding boxes + update side panel ─────
-                updateVideoDashboardData(data);
-                renderVideoFrame();
-
-                if (progressBadge) {
-                    const verdict = data.overall === 'PASS' ? '✓ PASS' : '✗ REJECT';
-                    progressBadge.innerText = `${fmt(currentTimeSec)} — ${verdict}`;
-                    progressBadge.className = `badge font-monospace ${data.overall === 'PASS' ? 'bg-success' : 'bg-danger'}`;
-                }
-            }
-        } catch (err) {
-            console.error('Step-by-step AI error:', err);
-        }
-
-        // ── 5. Hold frame so the officer can read it ─────────────────
-        await sleep(1500);
-
-        // ── 6. Advance ───────────────────────────────────────────────
-        currentTimeSec = Math.round((currentTimeSec + stepSec) * 1000) / 1000;
+    if (!videoElement.paused && !videoElement.ended) {
+        videoLoopId = requestAnimationFrame(runContinuousVideoLoop);
     }
-
-    // ── Done ─────────────────────────────────────────────────────────
-    isStepByStepRunning = false;
-    isVideoPlaying      = false;
-    if (progressBadge) {
-        progressBadge.innerText = 'Scan Complete';
-        progressBadge.className = 'badge font-monospace bg-secondary';
-    }
-    const playText = document.getElementById('playVideoText');
-    const playIcon = document.getElementById('playVideoIcon');
-    const playBtn  = document.getElementById('playVideoBtn');
-    if (playText) playText.innerText = 'Replay';
-    if (playIcon) playIcon.innerText = 'replay';
-    if (playBtn)  playBtn.classList.replace('btn-warning', 'btn-danger');
 }
+
 
 
 function onVideoFileSelected(event) {
@@ -419,8 +301,9 @@ async function loadSampleVideo(url, name) {
 
 function toggleVideoProcessing() {
     if (!videoElement) return;
-    if (isStepByStepRunning) {
-        stopVideoProcessing();
+
+    if (isVideoPlaying && !videoElement.paused) {
+        pauseVideoProcessing();
     } else {
         startVideoProcessing();
     }
@@ -429,45 +312,64 @@ function toggleVideoProcessing() {
 function startVideoProcessing() {
     if (!videoElement) return;
 
+    if (videoElement.error) {
+        runServerVideoScan();
+        return;
+    }
+
+    if (videoElement.ended || (videoElement.duration && videoElement.currentTime >= videoElement.duration - 0.1)) {
+        videoElement.currentTime = 0;
+    }
+
+    videoElement.play().catch(err => {
+        console.warn('Video play prevented or unsupported:', err);
+        runServerVideoScan();
+    });
+
     isVideoPlaying = true;
     const playText = document.getElementById('playVideoText');
     const playIcon = document.getElementById('playVideoIcon');
     const playBtn  = document.getElementById('playVideoBtn');
-    if (playText) playText.innerText = 'Stop';
-    if (playIcon) playIcon.innerText = 'stop';
+
+    if (playText) playText.innerText = 'Pause';
+    if (playIcon) playIcon.innerText = 'pause';
     if (playBtn)  playBtn.classList.replace('btn-danger', 'btn-warning');
 
-    // Reset position if at end
-    if (videoElement.duration && videoElement.currentTime >= videoElement.duration - 0.1) {
-        videoElement.currentTime = 0;
-    }
-
-    runStepByStepLoop();   // ← replaces the old requestAnimationFrame loop
+    if (videoLoopId) cancelAnimationFrame(videoLoopId);
+    videoLoopId = requestAnimationFrame(runContinuousVideoLoop);
 }
 
 function pauseVideoProcessing() {
-    // In step-by-step mode, "pause" just stops the loop at the next iteration
-    stepStopRequested = true;
-    isVideoPlaying    = false;
+    if (!videoElement) return;
+
+    if (!videoElement.paused) {
+        videoElement.pause();
+    }
+    isVideoPlaying = false;
     if (videoLoopId) cancelAnimationFrame(videoLoopId);
 
     const playText = document.getElementById('playVideoText');
     const playIcon = document.getElementById('playVideoIcon');
     const playBtn  = document.getElementById('playVideoBtn');
+
     if (playText) playText.innerText = 'Resume';
     if (playIcon) playIcon.innerText = 'play_arrow';
     if (playBtn)  playBtn.classList.replace('btn-warning', 'btn-danger');
 }
 
 function stopVideoProcessing() {
-    stepStopRequested   = true;
-    isStepByStepRunning = false;
-    isVideoPlaying      = false;
+    if (!videoElement) return;
+
+    if (!videoElement.paused) {
+        videoElement.pause();
+    }
+    isVideoPlaying = false;
     if (videoLoopId) cancelAnimationFrame(videoLoopId);
 
     const playText = document.getElementById('playVideoText');
     const playIcon = document.getElementById('playVideoIcon');
     const playBtn  = document.getElementById('playVideoBtn');
+
     if (playText) playText.innerText = 'Start Test';
     if (playIcon) playIcon.innerText = 'play_arrow';
     if (playBtn)  playBtn.classList.replace('btn-warning', 'btn-danger');
@@ -487,9 +389,6 @@ function resetVideoTest() {
         progressBadge.className = 'badge bg-secondary font-monospace';
     }
 }
-
-// runVideoRenderLoop kept as no-op for safety (no longer used)
-function runVideoRenderLoop() { /* replaced by runStepByStepLoop */ }
 
 function seekVideo(event) {
     if (!videoElement || !videoElement.duration) return;

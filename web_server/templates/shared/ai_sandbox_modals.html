@@ -181,9 +181,11 @@
                                     <span class="material-symbols-outlined fs-1 mb-2 d-block text-secondary">video_file</span>
                                     <span>Select or drag a video file (MP4/AVI/WebM) and click <strong>Start Test</strong> to run continuous detection</span>
                                 </div>
-                                <canvas id="videoResultCanvas" class="d-none" style="max-width: 100%; max-height: 560px; object-fit: contain;"></canvas>
-                                <!-- Offscreen HTML5 Video element for decoding frames reliably -->
-                                <video id="hiddenTestVideo" style="position: absolute; width: 1px; height: 1px; opacity: 0; pointer-events: none;" playsinline muted></video>
+                                <div id="videoErrorNotice" class="alert alert-warning m-3 d-none position-absolute" style="z-index: 20;"></div>
+                                <div id="videoPlayerWrapper" class="d-none position-relative w-100 h-100 d-flex align-items-center justify-content-center" style="max-height: 560px;">
+                                    <video id="hiddenTestVideo" style="max-width: 100%; max-height: 560px; object-fit: contain; width: 100%; height: 100%;" playsinline controls></video>
+                                    <canvas id="videoResultCanvas" class="position-absolute" style="max-width: 100%; max-height: 560px; object-fit: contain; pointer-events: none; width: 100%; height: 100%; top: 0; left: 0;"></canvas>
+                                </div>
                             </div>
                             <!-- Video timeline progress bar -->
                             <div class="card-footer bg-dark p-2 border-top border-secondary">

@@ -172,29 +172,38 @@ function onVideoFileSelected(event) {
     videoFile = file;
     videoElement = document.getElementById('hiddenTestVideo');
     videoCanvas = document.getElementById('videoResultCanvas');
-    videoCtx = videoCanvas.getContext('2d');
+    videoCtx = videoCanvas ? videoCanvas.getContext('2d') : null;
 
     const placeholder = document.getElementById('videoCanvasPlaceholder');
+    const playerWrapper = document.getElementById('videoPlayerWrapper');
     const playBtn = document.getElementById('playVideoBtn');
     const scanBtn = document.getElementById('serverScanBtn');
+    const errorNotice = document.getElementById('videoErrorNotice');
+
+    if (errorNotice) {
+        errorNotice.classList.add('d-none');
+        errorNotice.innerHTML = '';
+    }
 
     stopVideoProcessing();
     currentVideoDetections = [];
     videoFrameCount = 0;
 
-    const objectUrl = URL.createObjectURL(file);
-    videoElement.src = objectUrl;
+    // Immediately enable action buttons
+    if (playBtn) playBtn.disabled = false;
+    if (scanBtn) scanBtn.disabled = false;
 
+    // Display the video container
+    if (placeholder) placeholder.classList.add('d-none');
+    if (playerWrapper) playerWrapper.classList.remove('d-none');
+
+    // Attach event listeners before loading source
     videoElement.onloadedmetadata = () => {
-        placeholder.classList.add('d-none');
-        videoCanvas.classList.remove('d-none');
-        videoCanvas.width = videoElement.videoWidth || 1280;
-        videoCanvas.height = videoElement.videoHeight || 720;
-
-        videoElement.currentTime = 0;
+        if (videoCanvas) {
+            videoCanvas.width = videoElement.videoWidth || 1280;
+            videoCanvas.height = videoElement.videoHeight || 720;
+        }
         updateVideoTimeline();
-        if (playBtn) playBtn.disabled = false;
-        if (scanBtn) scanBtn.disabled = false;
     };
 
     videoElement.onloadeddata = () => {
@@ -209,6 +218,18 @@ function onVideoFileSelected(event) {
         updateVideoTimeline();
     };
 
+    videoElement.onplay = () => {
+        if (!isVideoPlaying) {
+            startVideoProcessing();
+        }
+    };
+
+    videoElement.onpause = () => {
+        if (isVideoPlaying) {
+            pauseVideoProcessing();
+        }
+    };
+
     videoElement.onended = () => {
         stopVideoProcessing();
         const playText = document.getElementById('playVideoText');
@@ -216,6 +237,28 @@ function onVideoFileSelected(event) {
         if (playText) playText.innerText = 'Replay';
         if (playIcon) playIcon.innerText = 'replay';
     };
+
+    videoElement.onerror = () => {
+        console.warn("Video element decode warning:", videoElement.error);
+        if (errorNotice) {
+            errorNotice.classList.remove('d-none');
+            errorNotice.innerHTML = `
+                <div class="d-flex align-items-center justify-content-between gap-3">
+                    <div>
+                        <strong class="d-block"><span class="material-symbols-outlined fs-6 align-middle text-warning">warning</span> Browser Playback Notice:</strong>
+                        <span class="small">The browser could not decode this specific video format (e.g. raw CCTV/AVI or corrupted MP4 header). You can still run the <strong>Full Server Scan</strong> to analyze all frames directly through the AI engine!</span>
+                    </div>
+                    <button type="button" class="btn btn-sm btn-danger fw-bold text-nowrap" onclick="runServerVideoScan()">
+                        <span class="material-symbols-outlined fs-6 align-middle me-1">manage_search</span> Run Server Scan
+                    </button>
+                </div>
+            `;
+        }
+    };
+
+    const objectUrl = URL.createObjectURL(file);
+    videoElement.src = objectUrl;
+    videoElement.load();
 }
 
 function toggleVideoProcessing() {
@@ -231,26 +274,28 @@ function toggleVideoProcessing() {
 function startVideoProcessing() {
     if (!videoElement) return;
 
-    videoElement.play().then(() => {
-        isVideoPlaying = true;
-        const playText = document.getElementById('playVideoText');
-        const playIcon = document.getElementById('playVideoIcon');
-        const playBtn = document.getElementById('playVideoBtn');
+    if (videoElement.paused) {
+        videoElement.play().catch(err => console.warn('Video play prevented:', err));
+    }
 
-        if (playText) playText.innerText = 'Pause';
-        if (playIcon) playIcon.innerText = 'pause';
-        if (playBtn) playBtn.classList.replace('btn-danger', 'btn-warning');
+    isVideoPlaying = true;
+    const playText = document.getElementById('playVideoText');
+    const playIcon = document.getElementById('playVideoIcon');
+    const playBtn = document.getElementById('playVideoBtn');
 
-        runVideoRenderLoop();
-    }).catch(err => {
-        console.error('Video play error:', err);
-    });
+    if (playText) playText.innerText = 'Pause';
+    if (playIcon) playIcon.innerText = 'pause';
+    if (playBtn) playBtn.classList.replace('btn-danger', 'btn-warning');
+
+    runVideoRenderLoop();
 }
 
 function pauseVideoProcessing() {
     if (!videoElement) return;
 
-    videoElement.pause();
+    if (!videoElement.paused) {
+        videoElement.pause();
+    }
     isVideoPlaying = false;
     if (videoLoopId) cancelAnimationFrame(videoLoopId);
 
@@ -332,13 +377,10 @@ function runVideoRenderLoop() {
 function renderVideoFrame() {
     if (!videoElement || !videoCanvas || !videoCtx) return;
 
-    try {
-        videoCtx.drawImage(videoElement, 0, 0, videoCanvas.width, videoCanvas.height);
-    } catch (e) {
-        // Video might not be ready yet
-        return;
-    }
+    // Clear overlay canvas
+    videoCtx.clearRect(0, 0, videoCanvas.width, videoCanvas.height);
 
+    // Draw active bounding boxes on top of video
     if (currentVideoDetections && currentVideoDetections.length > 0) {
         currentVideoDetections.forEach(d => {
             const [x1, y1, x2, y2] = d.box;
@@ -364,7 +406,9 @@ function renderVideoFrame() {
 }
 
 async function sendCurrentVideoFrameToAI() {
-    if (isProcessingFrame || !videoCanvas) return;
+    if (isProcessingFrame || !videoElement) return;
+    if (videoElement.readyState < 2) return;
+
     isProcessingFrame = true;
     lastInferenceTime = performance.now();
     videoFrameCount++;
@@ -372,7 +416,20 @@ async function sendCurrentVideoFrameToAI() {
     const counter = document.getElementById('videoFrameCounter');
     if (counter) counter.innerText = `Frame #${videoFrameCount}`;
 
-    videoCanvas.toBlob(async (blob) => {
+    // Offscreen frame capture canvas
+    const offCanvas = document.createElement('canvas');
+    offCanvas.width = videoElement.videoWidth || 1280;
+    offCanvas.height = videoElement.videoHeight || 720;
+    const offCtx = offCanvas.getContext('2d');
+
+    try {
+        offCtx.drawImage(videoElement, 0, 0, offCanvas.width, offCanvas.height);
+    } catch (e) {
+        isProcessingFrame = false;
+        return;
+    }
+
+    offCanvas.toBlob(async (blob) => {
         if (!blob) {
             isProcessingFrame = false;
             return;
@@ -398,6 +455,7 @@ async function sendCurrentVideoFrameToAI() {
                 if (badge) badge.innerText = `${latency} ms`;
 
                 updateVideoDashboardData(data);
+                renderVideoFrame();
             }
         } catch (err) {
             console.error('Frame inference error:', err);

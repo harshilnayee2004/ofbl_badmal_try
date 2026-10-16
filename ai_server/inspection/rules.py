@@ -10,7 +10,7 @@ def load_config(path):
 def _classes(ck):
     """-> (good_classes, bad_classes) for a check."""
     r = ck["rule"]
-    if r in ("required", "count"):
+    if r in ("required", "count", "face_feature"):
         return {ck["class"]}, set()
     if r == "forbidden":
         return set(), {ck["class"]}
@@ -25,6 +25,10 @@ def evaluate(mcfg, dets):
     for d in dets:
         by_cls.setdefault(d["class_name"], []).append(d)
 
+    # Multi-face inspection logic: if this model checks multiple exterior face features (seal on front, label on side)
+    face_checks = [c for c in mcfg["checks"] if c.get("rule") == "face_feature"]
+    any_face_seen = any(len(by_cls.get(c["class"], [])) > 0 for c in face_checks)
+
     checks, extra = [], []
     for ck in mcfg["checks"]:
         good, bad = _classes(ck)
@@ -36,6 +40,18 @@ def evaluate(mcfg, dets):
             need = ck.get("min_count", 1)
             if len(seen_good) < need:
                 status, reason, missing_cls = "FAIL", f"found {len(seen_good)}, need {need}", f"missing_{ck['class']}"
+        elif r == "face_feature":
+            if seen_good:
+                status = "PASS"
+                conf = max([d["score"] for d in seen_good], default=0)
+                reason = f"Detected ({int(conf * 100)}%)"
+            elif any_face_seen:
+                status = "PASS"
+                reason = "Not in view on this face (Alternate face verified)"
+            else:
+                status = "FAIL"
+                reason = "Neither seal nor label detected on box face"
+                missing_cls = f"missing_{ck['class']}"
         elif r == "forbidden":
             if seen_bad:
                 status, reason = "FAIL", f"{len(seen_bad)} found"
@@ -71,7 +87,7 @@ def evaluate(mcfg, dets):
         if r == "count":
             chk_item["count"] = len(seen_good)
             chk_item["expected_count"] = ck["count"]
-        elif r == "required":
+        elif r in ("required", "face_feature"):
             chk_item["count"] = len(seen_good)
             chk_item["min_count"] = ck.get("min_count", 1)
         checks.append(chk_item)

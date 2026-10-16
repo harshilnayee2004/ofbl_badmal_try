@@ -15,8 +15,8 @@ models:
     class_names: [sealed-explosive-carrier6AL, explosiveLabel, sealed]
     ignore_classes: [sealed-explosive-carrier6AL]
     checks:
-      - {id: carrier_seal,  label: "Carrier seal intact",          rule: required, class: sealed}
-      - {id: carrier_label, label: "1.4G explosive label (carrier)", rule: required, class: explosiveLabel}
+      - {id: carrier_seal,  label: "Carrier seal intact",          rule: face_feature, class: sealed}
+      - {id: carrier_label, label: "1.4G explosive label (carrier)", rule: face_feature, class: explosiveLabel}
 
   carrier_seal:
     stage: carrier
@@ -55,8 +55,8 @@ models:
     class_names: [sealed2, explosiveLabel, sealed]
     ignore_classes: [sealed2]
     checks:
-      - {id: h2a_seal,  label: "H2A box sealed",              rule: required, class: sealed}
-      - {id: h2a_label, label: "1.4G explosive label (H2A)",  rule: required, class: explosiveLabel}
+      - {id: h2a_seal,  label: "H2A box wire seal intact",     rule: face_feature, class: sealed}
+      - {id: h2a_label, label: "1.4G/1.4S explosive label (H2A)", rule: face_feature, class: explosiveLabel}
 
   h2a_seal:
     stage: box

@@ -78,6 +78,7 @@ async def decrement_box_sequence(
     LotService.decrement_box_sequence(db, lot_id)
     return ResponseDTO(message="Sequence Updated", status=True, object=None)
 
+@router.post("/increment_primer_sequence/{box_id}")
 @router.post("/increment_fuze_sequence/{box_id}")
 async def increment_fuze_sequence(
         box_id: int,
@@ -87,6 +88,7 @@ async def increment_fuze_sequence(
     result = LotService.increment_fuze_sequence(db, box_id)
     return ResponseDTO(message=result["message"], status=result["status"], object=None)
 
+@router.post("/decrement_primer_sequence/{lot_id}")
 @router.post("/decrement_fuze_sequence/{lot_id}")
 async def decrement_fuze_sequence(
         lot_id: int,
@@ -102,16 +104,18 @@ def get_count_information(db: Session = Depends(get_db), lot_id: int = Query(Non
     result = LotService.get_count_information(db=db, lot_id=lot_id, count_type=count_type)
     return ResponseDTO(message="Lots Fetched Successfully", status=True, object=result)
 
+@router.get("/get_primer_by_lot_id/{lot_id}")
 @router.get("/get_fuze_by_lot_id/{lot_id}")
 def get_fuze_by_lot_id(lot_id: int, db: Session = Depends(get_db)):
     result = LotService.get_fuze_by_lot_id(db, lot_id)
-    return ResponseDTO(message="Fuzes Fetched Successfully", status=True, object=result)
+    return ResponseDTO(message="Primers Fetched Successfully", status=True, object=result)
 
 @router.get("/get_box_by_lot_id/{lot_id}")
 def get_box_by_lot_id(lot_id: int, db: Session = Depends(get_db)):
     result = LotService.get_box_by_lot_id(db, lot_id)
     return ResponseDTO(message="Boxes Fetched Successfully", status=True, object=result)
 
+@router.get("/get_box_for_primer_reference/{lot_id}")
 @router.get("/get_box_for_fuze_reference/{lot_id}")
 def get_box_for_fuze_reference(lot_id: int, db: Session = Depends(get_db)):
     result = LotService.get_box_for_fuze_reference(db, lot_id)

@@ -8,9 +8,11 @@ from models.lot_model import Lot
 from fastapi import HTTPException
 from models.user_model import User
 from models.fuze_model import Fuze
+from models.primer_model import Primer
 from sqlmodel import Session, select
 from models.box_log_model import BoxLog
 from models.fuze_log_model import FuzeLog
+from models.box_h2a_inspection_model import BoxH2AInspection
 from models.box_G70_inspection_model import BoxG70Inspection
 from models.box_M104_inspection_model import BoxM104Inspection
 from models.primer_1al_inspection_model import Primer1ALInspection
@@ -274,10 +276,17 @@ class ReportService:
         
         # Determine inspection
         inspection = None
-        if box.box_type == "M-104 Type 2":
+        if getattr(box, "box_h2a_inspection_id", None):
+            inspection = db.exec(
+                select(BoxH2AInspection).where(BoxH2AInspection.id == box.box_h2a_inspection_id)).first()
+        elif getattr(box, "box_type", None) in ["H2A", "Box H2A", "H2A Box"]:
+            if getattr(box, "box_h2a_inspection_id", None):
+                inspection = db.exec(
+                    select(BoxH2AInspection).where(BoxH2AInspection.id == box.box_h2a_inspection_id)).first()
+        elif getattr(box, "box_type", None) in ["M-104 Type 2", "M104"] and hasattr(box, "box_m104_inspection_id") and box.box_m104_inspection_id:
             inspection = db.exec(
                 select(BoxM104Inspection).where(BoxM104Inspection.id == box.box_m104_inspection_id)).first()
-        else:
+        elif hasattr(box, "box_g70_inspection_id") and box.box_g70_inspection_id:
             inspection = db.exec(
                 select(BoxG70Inspection).where(BoxG70Inspection.id == box.box_g70_inspection_id)).first()
         
@@ -316,10 +325,17 @@ class ReportService:
         
         # Determine inspection
         inspection = None
-        if box.box_type == "M-104 Type 2":
+        if getattr(box, "box_h2a_inspection_id", None):
+            inspection = db.exec(
+                select(BoxH2AInspection).where(BoxH2AInspection.id == box.box_h2a_inspection_id)).first()
+        elif getattr(box, "box_type", None) in ["H2A", "Box H2A", "H2A Box"]:
+            if getattr(box, "box_h2a_inspection_id", None):
+                inspection = db.exec(
+                    select(BoxH2AInspection).where(BoxH2AInspection.id == box.box_h2a_inspection_id)).first()
+        elif getattr(box, "box_type", None) in ["M-104 Type 2", "M104"] and hasattr(box, "box_m104_inspection_id") and box.box_m104_inspection_id:
             inspection = db.exec(
                 select(BoxM104Inspection).where(BoxM104Inspection.id == box.box_m104_inspection_id)).first()
-        else:
+        elif hasattr(box, "box_g70_inspection_id") and box.box_g70_inspection_id:
             inspection = db.exec(
                 select(BoxG70Inspection).where(BoxG70Inspection.id == box.box_g70_inspection_id)).first()
         
@@ -677,9 +693,14 @@ class ReportService:
                         ws = box_wb.create_sheet(title=f"Box {box.sequence_number}")
                         box_logs = db.exec(select(BoxLog).where(BoxLog.box_id == box.id).order_by(BoxLog.date_time)).all()
                         inspection = None
-                        if box.box_type == "M-104 Type 2":
+                        if getattr(box, "box_h2a_inspection_id", None):
+                            inspection = db.exec(select(BoxH2AInspection).where(BoxH2AInspection.id == box.box_h2a_inspection_id)).first()
+                        elif getattr(box, "box_type", None) in ["H2A", "Box H2A", "H2A Box"]:
+                            if getattr(box, "box_h2a_inspection_id", None):
+                                inspection = db.exec(select(BoxH2AInspection).where(BoxH2AInspection.id == box.box_h2a_inspection_id)).first()
+                        elif getattr(box, "box_type", None) in ["M-104 Type 2", "M104"] and hasattr(box, "box_m104_inspection_id") and box.box_m104_inspection_id:
                             inspection = db.exec(select(BoxM104Inspection).where(BoxM104Inspection.id == box.box_m104_inspection_id)).first()
-                        else:
+                        elif hasattr(box, "box_g70_inspection_id") and box.box_g70_inspection_id:
                             inspection = db.exec(select(BoxG70Inspection).where(BoxG70Inspection.id == box.box_g70_inspection_id)).first()
                         user_info = "N/A"
                         if box.user_id:
@@ -748,3 +769,7 @@ class ReportService:
         except Exception as e:
             print(e)
             raise HTTPException(status_code=500, detail=str(e))
+
+ReportService.generate_primer_excel_report = ReportService.generate_fuze_excel_report
+ReportService.generate_primer_pdf_report = ReportService.generate_fuze_pdf_report
+

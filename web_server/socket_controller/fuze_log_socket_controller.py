@@ -14,6 +14,7 @@ router = APIRouter()
 fuze_log_manager = ConnectionManager()
 
 @router.websocket("/ws/fuze_log/{fuze_id}")
+@router.websocket("/ws/primer_log/{fuze_id}")
 async def fuze_log_ws(ws: WebSocket, fuze_id: int):
     room_name = f"fuze_{fuze_id}"
     await fuze_log_manager.connect(ws, room_name)

@@ -1,4 +1,4 @@
-from core.config import Settings
+from core.config import settings
 import cv2
 import time
 import numpy as np
@@ -103,7 +103,7 @@ class CameraService:
         while True:
             if streaming_service is None:
                 # Load placeholder image
-                placeholder_path = Settings.NO_FEED_IMAGE_PATH
+                placeholder_path = settings.NO_FEED_IMAGE_PATH
                 frame = cv2.imread(placeholder_path)
                 if frame is None:
                     # Fallback to black frame if placeholder missing
@@ -128,7 +128,7 @@ class CameraService:
 
             if frame is None:
                 # Load placeholder image
-                placeholder_path = Settings.NO_FEED_IMAGE_PATH
+                placeholder_path = settings.NO_FEED_IMAGE_PATH
                 frame = cv2.imread(placeholder_path)
                 if frame is None:
                     # Fallback to black frame if placeholder missing

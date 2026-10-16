@@ -74,6 +74,7 @@ async def get_current_inspection_state(current_user: User = Depends(get_current_
         }
     )
 
+@router.get("/get_boxes_for_primer_inspection")
 @router.get("/get_boxes_for_fuze_inspection")
 async def get_boxes_for_fuze_inspection(lot_id: int = Query(...), db: Session = Depends(get_db)):
     boxes = await BoxService.get_boxes_for_fuze_inspection(db, lot_id)

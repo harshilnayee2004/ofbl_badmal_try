@@ -354,6 +354,8 @@ class LotService:
     @staticmethod
     def increment_box_sequence(db: Session, lot_id: int):
         lot = db.exec(select(Lot).where(Lot.id == lot_id)).first()
+        if not lot:
+            return {"status": False, "message": "Lot not found"}
         if lot.box_current_sequence <= lot.number_of_box_to_inspect:
             lot.box_current_sequence += 1
             db.add(lot)
@@ -383,6 +385,8 @@ class LotService:
     @staticmethod
     def increment_fuze_sequence(db: Session, lot_id: int):
         lot = db.exec(select(Lot).where(Lot.id == lot_id)).first()
+        if not lot:
+            return {"status": False, "message": "Lot not found"}
         if lot.fuze_current_sequence <= lot.number_of_fuze_to_inspect:
             lot.fuze_current_sequence += 1
             db.add(lot)
@@ -408,10 +412,13 @@ class LotService:
             db.commit()
             return {"status": False, "message": "All fuzes in this lot completed. Please move to next lot."}
 
+    increment_primer_sequence = increment_fuze_sequence
 
     @staticmethod
     def decrement_box_sequence(db: Session, lot_id: int):
         lot = db.exec(select(Lot).where(Lot.id == lot_id)).first()
+        if not lot:
+            return {"status": False, "message": "Lot not found"}
         if lot.box_current_sequence > 1:
             lot.box_current_sequence -= 1
             db.add(lot)
@@ -422,12 +429,16 @@ class LotService:
     @staticmethod
     def decrement_fuze_sequence(db: Session, lot_id: int):
         lot = db.exec(select(Lot).where(Lot.id == lot_id)).first()
+        if not lot:
+            return {"status": False, "message": "Lot not found"}
         if lot.fuze_current_sequence > 1:
             lot.fuze_current_sequence -= 1
             db.add(lot)
             db.commit()
             db.refresh(lot)
         return {"status": True, "message": "Moved to previous fuze"}
+
+    decrement_primer_sequence = decrement_fuze_sequence
 
     @staticmethod
     def update_lot_acceptance_status(db: Session, lot_id: int, status: str):
@@ -572,12 +583,17 @@ class LotService:
             box_dict = box.dict()
             
             inspection_dict = {}
-            if box.box_type == "M104" and box.box_m104_inspection_id:
+            if getattr(box, "box_h2a_inspection_id", None):
+                inspection = db.exec(select(BoxH2AInspection).where(BoxH2AInspection.id == box.box_h2a_inspection_id)).first()
+                if inspection:
+                    for column in BoxH2AInspection.__table__.columns:
+                        inspection_dict[column.name] = getattr(inspection, column.name)
+            elif box.box_type in ["M104", "M-104 Type 2"] and getattr(box, "box_m104_inspection_id", None):
                 inspection = db.exec(select(BoxM104Inspection).where(BoxM104Inspection.id == box.box_m104_inspection_id)).first()
                 if inspection:
                     for column in BoxM104Inspection.__table__.columns:
                         inspection_dict[column.name] = getattr(inspection, column.name)
-            elif box.box_type == "G70" and box.box_g70_inspection_id:
+            elif box.box_type in ["G70", "G-70"] and getattr(box, "box_g70_inspection_id", None):
                 inspection = db.exec(select(BoxG70Inspection).where(BoxG70Inspection.id == box.box_g70_inspection_id)).first()
                 if inspection:
                     for column in BoxG70Inspection.__table__.columns:
@@ -617,3 +633,7 @@ class LotService:
             result.append(box_dict)
             
         return result
+
+
+LotService.get_primer_by_lot_id = LotService.get_fuze_by_lot_id
+LotService.get_box_for_primer_reference = LotService.get_box_for_fuze_reference

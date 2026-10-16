@@ -6,7 +6,7 @@ import httpx
 import numpy as np
 from datetime import datetime
 from sqlmodel import Session, select
-from core.config import Settings
+from core.config import settings
 from core.database import engine
 from models.carrier_model import Carrier
 from models.carrier_6al_inspection_model import Carrier6ALInspection
@@ -156,7 +156,7 @@ class Carrier6ALInspectionService:
                                         "lot_number": lot_number
                                     }
                                     response = await client.post(
-                                        f"{Settings.AI_SERVER_URL}inspect_carrier/6al",
+                                        f"{settings.AI_SERVER_URL}inspect_carrier/6al",
                                         data=data,
                                         files=files
                                     )

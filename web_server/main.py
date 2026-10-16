@@ -19,6 +19,7 @@ from controllers.auth_controller import router as auth_router
 from controllers.user_controller import router as user_router
 from controllers.test_controller import router as test_router
 from controllers.fuze_controller import router as fuze_router
+from controllers.primer_controller import router as primer_router
 from controllers.chat_controller import router as chat_router
 from controllers.admin_controller import router as admin_router
 from controllers.report_controller import router as report_router
@@ -47,10 +48,12 @@ from models.carrier_log_model import CarrierLog
 from models.box_model import Box
 from models.user_model import User
 from models.fuze_model import Fuze
+from models.primer_model import Primer
 from models.camera_model import Camera
 from models.box_log_model import BoxLog
 from models.message_model import Message
 from models.fuze_log_model import FuzeLog
+from models.primer_log_model import PrimerLog
 from models.box_h2a_inspection_model import BoxH2AInspection
 from models.carrier_6al_inspection_model import Carrier6ALInspection
 from models.primer_1al_inspection_model import Primer1ALInspection
@@ -75,6 +78,7 @@ app.include_router(box_router)
 app.include_router(test_router)
 app.include_router(auth_router)
 app.include_router(user_router)
+app.include_router(primer_router)
 app.include_router(fuze_router)
 app.include_router(chat_router)
 app.include_router(admin_router)
@@ -95,7 +99,6 @@ app.include_router(box_motor_router)
 app.include_router(fuze_motor_router)
 app.include_router(carrier_motor_router)
 app.include_router(chat_socket_router)
-app.include_router(camera_status_router)
 app.include_router(inspection_box_router)
 app.include_router(inspection_lot_router)
 app.include_router(inspection_fuze_router)

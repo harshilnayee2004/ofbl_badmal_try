@@ -56,8 +56,9 @@ def manage_lots_page(request: Request, current_user: User = Depends(get_current_
     )
 
 
+@router.get("/count_boxes_and_primers", response_class=HTMLResponse)
 @router.get("/count_boxes_and_fuzes", response_class=HTMLResponse)
-def count_boxes_and_fuzes(
+def count_boxes_and_primers(
     request: Request,
     lot_id: Optional[int] = Query(None),
     count_type: Optional[str] = Query(None),
@@ -66,13 +67,15 @@ def count_boxes_and_fuzes(
 ):
     return templates.TemplateResponse(
         request=request,
-        name="user/count_boxes_fuzes.html",
+        name="user/count_boxes_primers.html",
         context={
             "user": current_user,
             "count_type": count_type,
             "lot_id": lot_id
         }
-    )    
+    )
+
+count_boxes_and_fuzes = count_boxes_and_primers
 
 
 @router.get("/inspect_carrier", response_class=HTMLResponse)
@@ -124,7 +127,7 @@ def inspect_box(
             }
         )
     lots = db.exec(
-        select(Lot).where(Lot.inspection_status.in_(["Pending", "Inspecting"]))
+        select(Lot).where(Lot.box_inspection_status.in_(["Pending", "Inspecting"]))
     ).all()
     
     return templates.TemplateResponse(
@@ -138,8 +141,9 @@ def inspect_box(
     )
 
 
+@router.get("/inspect_primer", response_class=HTMLResponse)
 @router.get("/inspect_fuze", response_class=HTMLResponse)
-def inspect_fuze(
+def inspect_primer(
     request: Request,
     lot_id: Optional[int] = Query(None),
     current_user: User = Depends(get_current_user),
@@ -148,7 +152,7 @@ def inspect_fuze(
     if lot_id is not None:
         return templates.TemplateResponse(
             request=request,
-            name="user/inspect_fuze/inspection.html",
+            name="user/inspect_primer/inspection.html",
             context={
                 "user": current_user,
                 "lot_id": lot_id,
@@ -159,10 +163,12 @@ def inspect_fuze(
     ).all()
     return templates.TemplateResponse(
         request=request,
-        name="user/inspect_fuze/selection.html",
+        name="user/inspect_primer/selection.html",
         context={
             "user": current_user,
             "lot_id": lot_id if lot_id else "",
             "lots": lots
         }
     )
+
+inspect_fuze = inspect_primer

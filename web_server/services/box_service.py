@@ -262,21 +262,18 @@ class BoxService:
 
     @staticmethod
     async def update_box_number(db: Session, request: BoxNumberUpdateRequest, current_user: User):
-        # Check if the new box number already exists (optional, but good practice)
         box = db.exec(select(Box).where(Box.id == request.box_id)).first()
+        if not box:
+            return "Box Not Found", False
         if box.box_number == request.new_box_number:
             return "Box Number Updated Successfully", True
         existing_box = db.exec(select(Box).where(Box.box_number == request.new_box_number, Box.lot_id == request.lot_id)).first()
         if existing_box:
              return "Box Number Already Exists", False
 
-        box_obj = db.exec(select(Box).where(Box.id == request.box_id)).first()
-        if not box_obj:
-            return "Box Not Found", False
-
-        old_number = box_obj.box_number
-        box_obj.box_number = request.new_box_number
-        db.add(box_obj)
+        old_number = box.box_number
+        box.box_number = request.new_box_number
+        db.add(box)
 
         # Log the change
         box_log_service = BoxLogService(db)
@@ -314,3 +311,5 @@ class BoxService:
         boxes = db.exec(select(Box).where(Box.lot_id == lot_id, Box.box_inspection_status != "Pending")).all()
 
         return boxes
+
+    get_boxes_for_primer_inspection = get_boxes_for_fuze_inspection

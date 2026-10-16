@@ -245,7 +245,7 @@
                                         </span>
                                     </td>
                                     <td class="text-end pe-3">
-                                        <a href="/user/inspect_fuze?lot_id={{ lot.id }}" class="btn btn-sm {% if lot.fuze_inspection_status == 'Pending' %}btn-outline-dark{% else %}btn-dark text-white{% endif %} px-2 px-sm-3 d-inline-flex align-items-center">
+                                        <a href="/user/inspect_primer?lot_id={{ lot.id }}" class="btn btn-sm {% if lot.fuze_inspection_status == 'Pending' %}btn-outline-dark{% else %}btn-dark text-white{% endif %} px-2 px-sm-3 d-inline-flex align-items-center">
                                             <span class="material-symbols-outlined fs-6 me-1">{% if lot.fuze_inspection_status == 'Pending' %}play_arrow{% else %}resume{% endif %}</span>
                                             {% if lot.fuze_inspection_status == 'Pending' %}Start{% else %}Resume{% endif %}
                                         </a>

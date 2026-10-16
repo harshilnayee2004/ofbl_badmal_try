@@ -6,7 +6,7 @@ import httpx
 import numpy as np
 from datetime import datetime
 from sqlmodel import Session, select
-from core.config import Settings
+from core.config import settings
 from core.database import engine
 from models.fuze_model import Fuze
 from models.lot_model import Lot
@@ -165,7 +165,7 @@ class Primer1ALInspectionService:
                                         "lot_number": lot_number
                                     }
                                     response = await client.post(
-                                        f"{Settings.AI_SERVER_URL}inspect_fuze/primer_1al",
+                                        f"{settings.AI_SERVER_URL}inspect_fuze/primer_1al",
                                         data=data,
                                         files=files
                                     )

@@ -165,7 +165,11 @@ def startup_checks(engine):
                 )
 
         StreamManager.start_all_streams()
-        asyncio.create_task(BackgroundService.monitor_system_stats())
+        try:
+            loop = asyncio.get_running_loop()
+            loop.create_task(BackgroundService.monitor_system_stats())
+        except RuntimeError:
+            pass
 
 
 def stop_checks(engine):

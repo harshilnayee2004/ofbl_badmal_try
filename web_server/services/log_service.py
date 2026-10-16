@@ -72,7 +72,7 @@ class BoxLogService:
 
 
     def get_box_logs(self, box_id: int):
-        return self.db.query(BoxLog).filter(BoxLog.box_id == box_id).order_by(BoxLog.date_time.asc()).all()
+        return self.db.exec(select(BoxLog).where(BoxLog.box_id == box_id).order_by(BoxLog.date_time.asc())).all()
 
 
 class FuzeLogService:
@@ -99,6 +99,13 @@ class FuzeLogService:
         )
         return log
 
+    add_primer_log = add_fuze_log
+
     def get_fuze_logs(self, fuze_id: int):
-        return self.db.query(FuzeLog).filter(FuzeLog.fuze_id == fuze_id).order_by(FuzeLog.date_time.asc()).all()
+        return self.db.exec(select(FuzeLog).where(FuzeLog.fuze_id == fuze_id).order_by(FuzeLog.date_time.asc())).all()
+
+    get_primer_logs = get_fuze_logs
+
+
+PrimerLogService = FuzeLogService
 

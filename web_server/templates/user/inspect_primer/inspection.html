@@ -1,0 +1,336 @@
+{% extends "user/base.html" %}
+
+{% block content %}
+<div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3 mb-md-4">
+    <div class="d-flex align-items-center flex-wrap gap-2">
+        <h1 class="d-flex align-items-center mb-0 h3 fw-bold">
+            <span class="material-symbols-outlined me-2 fs-2" style="color: #d63384;">military_tech</span>
+            Inspect Primer 1A/L
+        </h1>
+        <span class="badge bg-light text-dark border font-monospace fs-6 py-1 px-2">Lot: <span id="lotNumber" class="fw-bold">--</span></span>
+    </div>
+    <input type="hidden" name="" id="lotId" value="{{lot_id}}">
+    <input type="hidden" name="" id="fuzeId" value="">
+    <button class="btn btn-outline-secondary btn-sm rounded-pill d-inline-flex align-items-center px-3" onclick="backToSelection()">
+        <span class="material-symbols-outlined me-1 fs-6">arrow_back</span> Back
+    </button>
+</div>
+
+<div class="row g-3 g-lg-4 d-flex align-items-stretch">
+    <!-- Camera View & Logs Column -->
+    <div class="col-12 col-lg-6 d-flex flex-column">
+        <div class="card shadow-sm mb-3 mb-md-4 border-0">
+            <div class="card-header bg-dark text-white d-flex justify-content-between align-items-center py-2">
+                <span class="fs-6 fw-bold d-flex align-items-center">
+                    <span class="material-symbols-outlined me-1 fs-5">videocam</span>
+                    Live Camera Feed (<span id="cameraViewTitle" class="text-light">Top View</span>)
+                </span>
+                <div class="d-flex align-items-center">
+                    <div id="recordingIndicator"
+                        class="recording-badge badge bg-danger text-uppercase d-flex align-items-center gap-1 d-none">
+                        <span class="material-symbols-outlined" style="font-size: 1rem;">radio_button_checked</span>
+                        REC
+                    </div>
+                </div>
+            </div>
+            <div class="card-body p-0 bg-black">
+                <div class="ratio ratio-16x9">
+                    <img src="/api/cameras/stream/PRIMER_BOX_TOP" id="cameraViewImage" alt="Primer Camera Stream"
+                        class="object-fit-cover">
+                </div>
+            </div>
+
+        </div>
+
+        <div class="card shadow-sm flex-grow-1 d-flex flex-column border-0" style="min-height: 0;">
+            <div class="card-header bg-light d-flex align-items-center justify-content-between py-2">
+                <span class="fs-6 fw-bold d-flex align-items-center text-dark">
+                    <span class="material-symbols-outlined me-1 fs-5">terminal</span>
+                    Primer Inspection Logs
+                </span>
+            </div>
+            <div class="card-body overflow-auto flex-grow-1 inspection-logs bg-dark text-light p-3" id="logContainer">
+                <div class="d-flex justify-content-center align-items-center h-100 text-muted font-monospace py-3">
+                    <div class="spinner-border spinner-border-sm text-secondary me-2" role="status"></div>
+                    <span>Loading logs...</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Primer Details, Parameters & Actions Column -->
+    <div class="col-12 col-lg-6">
+        <div class="card shadow-sm h-100 d-flex flex-column border-0">
+            <div class="card-header bg-light d-flex align-items-center justify-content-between py-2">
+                <span class="fs-6 fw-bold d-flex align-items-center text-dark">
+                    <span class="material-symbols-outlined me-1 fs-5">info</span>
+                    Inspection Information
+                </span>
+                <span class="badge font-monospace" style="background-color: #fce8f3; color: #d63384;" id="fuzeSequenceBadge">Seq #1</span>
+            </div>
+            <div class="card-body">
+                <div class="row g-2 g-sm-3 mb-2">
+                    <div class="col-12">
+                        <h6 class="text-uppercase text-muted fw-bold small border-bottom pb-2 mb-2">Primer Details</h6>
+                    </div>
+                    <div class="col-6 col-sm-4">
+                        <span class="text-muted small d-block">Ordnance Type</span>
+                        <span id="fuzeType" class="fw-bold font-monospace text-dark placeholder-glow">
+                            <span class="placeholder col-8"></span>
+                        </span>
+                    </div>
+                    <div class="col-6 col-sm-4">
+                        <span class="text-muted small d-block">Primer Sequence</span>
+                        <span id="fuzeSequence" class="fw-bold font-monospace text-dark placeholder-glow">
+                            <span class="placeholder col-4"></span>
+                        </span>
+                    </div>
+                    <div class="col-6 col-sm-4">
+                        <span class="text-muted small d-block">Inspection Status</span>
+                        <span class="badge bg-secondary font-monospace" id="inspectionStatus">Pending</span>
+                    </div>
+                    <div class="col-12 col-sm-8">
+                        <span class="text-muted small d-block">Instruction</span>
+                        <span id="instructionText" class="fw-bold text-primary small font-monospace placeholder-glow">
+                            <span class="placeholder col-10"></span>
+                        </span>
+                    </div>
+                    <div class="col-6 col-sm-4">
+                        <span class="text-muted small d-block">Waiting Time</span>
+                        <span id="waitingTime" class="fw-bold text-danger font-monospace placeholder-glow">
+                            <span class="placeholder col-6"></span>
+                        </span>
+                    </div>
+                </div>
+
+                <hr class="my-3">
+
+                <div class="mb-3">
+                    <h6 class="text-uppercase text-muted fw-bold small mb-2">Inspection Parameters</h6>
+                    <div id="inspectionParameters" class="row g-2">
+                        <!-- Inspection parameters will be loaded here as grid items -->
+                        <div class="d-flex justify-content-center align-items-center w-100 py-4 text-muted">
+                            <div class="spinner-border spinner-border-sm text-primary me-2" role="status"></div>
+                            <span>Loading parameters...</span>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+            <div class="card-footer bg-white border-top py-3">
+                <div class="d-grid gap-2" id="inspectionActions">
+                    <div class="d-none" id="preInspectionActions">
+                        <div class="row g-2">
+                            <div class="col-6">
+                                <button type="button" class="btn btn-outline-secondary rounded-pill w-100 py-2 fw-semibold d-inline-flex align-items-center justify-content-center"
+                                    onclick="triggerPreviousFuzeSequence()" id="previousBoxBtn">
+                                    <span class="material-symbols-outlined me-1 fs-6">navigate_before</span> Prev Primer
+                                </button>
+                            </div>
+                            <div class="col-6">
+                                <button type="button" class="btn btn-primary rounded-pill w-100 py-2 fw-bold d-inline-flex align-items-center justify-content-center" onclick="startInspection()"
+                                    id="startInspectionBtn">
+                                    <span class="spinner-border spinner-border-sm d-none me-1" role="status"
+                                         aria-hidden="true"></span>
+                                    <span class="material-symbols-outlined me-1 fs-6">play_arrow</span>
+                                    <span class="btn-text">Start Inspection</span>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div id="activeInspectionActions" class="d-none">
+                        <div class="row g-2">
+                            <div class="col-4">
+                                <button type="button" class="btn btn-warning rounded-pill w-100 py-2 fw-bold d-inline-flex align-items-center justify-content-center" onclick="updateStatus('Paused')"
+                                    id="pauseBtn">
+                                    <span class="material-symbols-outlined me-1 fs-6">pause</span> Pause
+                                </button>
+                                <button type="button" class="btn btn-primary rounded-pill w-100 py-2 fw-bold d-none d-inline-flex align-items-center justify-content-center"
+                                    onclick="updateStatus('Inspecting')" id="resumeBtn">
+                                    <span class="material-symbols-outlined me-1 fs-6">play_arrow</span> Resume
+                                </button>
+                            </div>
+                            <div class="col-8">
+                                <button type="button" class="btn btn-danger rounded-pill w-100 py-2 fw-bold d-inline-flex align-items-center justify-content-center" onclick="updateStatus('Stopped')"
+                                    id="stopBtn">
+                                    <span class="material-symbols-outlined me-1 fs-6">stop</span> Stop Inspection
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div id="postInspectionActions" class="d-none">
+                        <div class="row g-2">
+                            <div class="col-12 col-sm-4">
+                                <button type="button" class="btn btn-outline-secondary rounded-pill w-100 py-2 fw-semibold d-inline-flex align-items-center justify-content-center"
+                                    onclick="triggerPreviousFuzeSequence()" id="previousFuzeBtnPost">
+                                    <span class="material-symbols-outlined me-1 fs-6">navigate_before</span> Prev Primer
+                                </button>
+                            </div>
+                            <div class="col-6 col-sm-4">
+                                <button type="button" class="btn btn-outline-primary rounded-pill w-100 py-2 fw-bold d-inline-flex align-items-center justify-content-center" onclick="startInspection()">
+                                    <span class="material-symbols-outlined me-1 fs-6">replay</span> Re-inspect
+                                </button>
+                            </div>
+                            <div class="col-6 col-sm-4">
+                                <button type="button" class="btn btn-success rounded-pill w-100 py-2 fw-bold d-inline-flex align-items-center justify-content-center" onclick="moveToNextFuze()">
+                                    <span class="material-symbols-outlined me-1 fs-6">navigate_next</span> Next Primer
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- AI Detection Overlay (RF-DETR) -->
+<link rel="stylesheet" href="{{ url_for('static', path='/js/user/shared/inspection_overlay.css') }}">
+<div class="row g-3 g-lg-4 mt-1">
+    <div class="col-12"><div id="aiOverlay"></div></div>
+</div>
+
+<!-- Motor Control Card -->
+<div class="row g-3 g-lg-4 mt-1 mb-4">
+    <div class="col-12">
+        <div class="card shadow-sm border-0">
+            <div class="card-header bg-light d-flex align-items-center py-2">
+                <span class="fs-6 fw-bold d-flex align-items-center text-dark">
+                    <span class="material-symbols-outlined me-1 fs-5">settings_motion_mode</span>
+                    Primer Rotary Motor Control (PRIMER_BOX_TURN_MOTOR)
+                </span>
+
+            </div>
+            <div class="card-body py-3">
+                <div class="d-flex align-items-center gap-2 flex-wrap">
+                    <span class="text-muted small fw-semibold me-1">Rotate Motor by:</span>
+                    <div class="motor-btn-group d-flex align-items-center gap-1 flex-wrap">
+                        <button type="button" class="btn btn-outline-primary rounded-pill px-3" onclick="sendFuzeMotorCommand(180)"
+                            id="motorBtn180">
+                            <span class="material-symbols-outlined align-middle fs-6">rotate_right</span> 180°
+                        </button>
+                        <button type="button" class="btn btn-outline-primary rounded-pill px-3" onclick="sendFuzeMotorCommand(90)"
+                            id="motorBtn90">
+                            <span class="material-symbols-outlined align-middle fs-6">rotate_right</span> 90°
+                        </button>
+                        <button type="button" class="btn btn-outline-secondary rounded-pill px-3" onclick="sendFuzeMotorCommand(5)"
+                            id="motorBtn5">
+                            <span class="material-symbols-outlined align-middle fs-6">rotate_right</span> 5°
+                        </button>
+                        <button type="button" class="btn btn-outline-secondary rounded-pill px-3" onclick="sendFuzeMotorCommand(1)"
+                            id="motorBtn1">
+                            <span class="material-symbols-outlined align-middle fs-6">rotate_right</span> 1°
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+<!-- Button trigger modal -->
+<button type="button" class="btn btn-primary d-none" data-bs-toggle="modal" data-bs-target="#staticBackdrop">
+    Open Select Lot Id model
+</button>
+
+<!-- Modal -->
+<div class="modal fade" id="lotSelectionModal" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1"
+    aria-labelledby="staticBackdropLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h1 class="modal-title fs-5" id="staticBackdropLabel">Select Lot Id</h1>
+                <!-- <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button> -->
+                <a href="/user/dashboard" class="btn btn-outline-primary rounded-pill px-3">Back</a>
+            </div>
+            <div class="modal-body">
+                <div class="mb-3">
+                    <label for="lotSearchInput" class="form-label">Search Lot Number</label>
+                    <div class="input-group mb-3">
+                        <input type="text" class="form-control" id="lotSearchInput" placeholder="Enter lot number..."
+                            onkeyup="searchLots()">
+                        <button class="btn btn-outline-primary rounded-pill px-3 ms-2" type="button" onclick="searchLots()">
+                            <span class="material-symbols-outlined" style="vertical-align: middle;">search</span>
+                        </button>
+                    </div>
+                    <div id="lotSearchResults" class="list-group overflow-auto" style="max-height: 300px;">
+                        <!-- Search results will appear here -->
+                        <div class="text-center text-muted p-3">Type to search for lots</div>
+                    </div>
+                </div>
+            </div>
+            <!-- <div class="modal-footer">
+                <button type="button" class="btn btn-primary rounded-pill px-3" onclick="selectLot()">Select</button>
+            </div> -->
+        </div>
+    </div>
+</div>
+
+<!-- Box Selection Modal -->
+<button type="button" class="btn btn-primary d-none" id="openBoxModalBtn" data-bs-toggle="modal"
+    data-bs-target="#boxSelectionModal">
+    Open Box Selection
+</button>
+<div class="modal fade" id="boxSelectionModal" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1"
+    aria-labelledby="boxSelectionModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h1 class="modal-title fs-5" id="boxSelectionModalLabel">Select Box</h1>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-3">
+                    <label class="form-label">Available Boxes</label>
+                    <div id="boxSearchResults" class="list-group overflow-auto" style="max-height: 300px;">
+                        <div class="text-center text-muted p-3">Loading boxes...</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+</div>
+
+
+
+<script src="{{ url_for('static', path='/js/toaster.js') }}"></script>
+<script src="{{ url_for('static', path='/js/user/shared/inspection_overlay.js') }}"></script>
+<script>
+    // Only the 3 checks covered by the RF-DETR primer model; the page's own parameter panel still shows all 6.
+    window.inspectionOverlay = new InspectionOverlay({
+        mount: '#aiOverlay',
+        title: 'AI Detection (RF-DETR)',
+        streamUrl: '/api/cameras/stream/PRIMER_BOX_TOP',
+        wsUrl: (location.protocol === 'https:' ? 'wss://' : 'ws://') + location.host + '/ws/inspection_fuze',
+        hideDecision: true,
+        checklist: [
+            { id: 'paper_liner', label: 'Paper liner intact (Param 17)' },
+            { id: 'rubber_ring', label: 'Rubber ring present (Param 18)' },
+            { id: 'assembly', label: 'Magazine assembly (Param 19)' }
+        ]
+    });
+</script>
+<script src="{{ url_for('static', path='/js/user/inspect_primer/primer_inspection_main.js') }}"></script>
+<script src="{{ url_for('static', path='/js/user/inspect_primer/primer_inspection_sockets.js') }}"></script>
+<script>
+    async function sendFuzeMotorCommand(angle) {
+        const btn = document.getElementById(`motorBtn${angle}`);
+        if (btn) { btn.disabled = true; }
+        try {
+            const response = await fetch(`/motor/fuze/${angle}`);
+            const data = await response.json();
+            // if (typeof showToast === 'function') showToast(data.message, 'success');
+        } catch (err) {
+            if (typeof showToast === 'function') showToast(`Motor command failed: ${err.message}`, 'danger');
+        } finally {
+            if (btn) { btn.disabled = false; }
+        }
+    }
+</script>
+
+
+{% endblock %}

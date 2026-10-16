@@ -9,7 +9,7 @@
 models:
   carrier_seal_label:
     stage: carrier
-    path: ai_models/Carrier6AL_Explosive_Seal.pth
+    path: ai_models/Carrier_6AL_Seal_Label.pth
     variant: small
     threshold: 0.80
     ignore_classes: [sealed-explosive-carrier6AL]
@@ -19,7 +19,7 @@ models:
 
   h2a_seal_label:
     stage: box
-    path: ai_models/H2A_Explosive_Seal.pth
+    path: ai_models/H2A_Box_Seal_Label.pth
     variant: small
     threshold: 0.85
     ignore_classes: [sealed2]
@@ -29,15 +29,15 @@ models:
 
   h2a_rust:
     stage: box
-    path: ai_models/h2a_rust_checkpoint_best_total.pth
+    path: ai_models/H2A_Box_Rust.pth
     variant: large
-    threshold: 0.30            # ASSUMPTION: script also mentions 0.85 - confirm which is the pass/fail cutoff
+    threshold: 0.30
     checks:
       - {id: h2a_rust, label: "H2A box free of rust", rule: forbidden, class: H2A-rust}
 
   h2a_inner:
     stage: box
-    path: ai_models/Inner_H2A_Box.pth
+    path: ai_models/H2A_Box_Inner_Fitments.pth
     variant: small
     threshold: 0.90
     ignore_classes: [PaparSlip-WoodenSheet-7RpN--m69m]
@@ -49,7 +49,7 @@ models:
 
   primer_assembly:
     stage: primer
-    path: ai_models/Primer.pth
+    path: ai_models/Primer_1AL_Assembly_Liner_Ring.pth
     variant: small
     threshold: 0.60
     checks:
@@ -59,7 +59,7 @@ models:
 
   primer_count:
     stage: box
-    path: ai_models/Primer_Count.pth
+    path: ai_models/H2A_Box_Primer_Count_18.pth
     variant: small
     resolution: 512
     threshold: 0.70
@@ -68,7 +68,7 @@ models:
 
   primer_paint:
     stage: primer
-    path: ai_models/Primer_Paint_checkpoint_best_total.pth   # rename: two folders both use checkpoint_best_total.pth
+    path: ai_models/Primer_1AL_Paint_Peeling.pth
     variant: small
     resolution: 512
     threshold: 0.30
@@ -77,7 +77,7 @@ models:
 
   carrier_rust:
     stage: carrier
-    path: ai_models/carrier_rust_checkpoint_best_total.pth
+    path: ai_models/Carrier_6AL_Rust.pth
     variant: large
     threshold: 0.50
     checks:

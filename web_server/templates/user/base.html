@@ -62,14 +62,14 @@
                     </a>
                 </li>
                 <li>
-                    <a href="/user/inspect_fuze"
-                        class="nav-link text-white d-flex align-items-center py-2 {% if request.url.path.startswith('/user/inspect_fuze') %}active{% endif %}">
+                    <a href="/user/inspect_primer"
+                        class="nav-link text-white d-flex align-items-center py-2 {% if request.url.path.startswith('/user/inspect_primer') or request.url.path.startswith('/user/inspect_fuze') %}active{% endif %}">
                         <span class="material-symbols-outlined me-2 fs-5">adjust</span>
                         Inspect Primer 1A/L
                     </a>
                 </li>
                 <li>
-                    <a href="/user/count_boxes_and_fuzes"
+                    <a href="/user/count_boxes_and_primers"
                         class="nav-link text-white d-flex align-items-center py-2 {% if request.url.path.startswith('/user/count_boxes') %}active{% endif %}">
                         <span class="material-symbols-outlined me-2 fs-5">calculate</span>
                         Count Boxes / Primers

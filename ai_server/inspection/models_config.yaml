@@ -11,29 +11,78 @@ models:
     stage: carrier
     path: ai_models/Carrier_6AL_Seal_Label.pth
     variant: small
-    threshold: 0.80
+    threshold: 0.65
     class_names: [sealed-explosive-carrier6AL, explosiveLabel, sealed]
     ignore_classes: [sealed-explosive-carrier6AL]
     checks:
       - {id: carrier_seal,  label: "Carrier seal intact",          rule: required, class: sealed}
       - {id: carrier_label, label: "1.4G explosive label (carrier)", rule: required, class: explosiveLabel}
 
+  carrier_seal:
+    stage: carrier
+    path: ai_models/Carrier_6AL_Seal_Label.pth
+    variant: small
+    threshold: 0.65
+    class_names: [sealed-explosive-carrier6AL, explosiveLabel, sealed]
+    ignore_classes: [sealed-explosive-carrier6AL, explosiveLabel]
+    checks:
+      - {id: carrier_seal,  label: "Carrier seal intact", rule: required, class: sealed}
+
+  carrier_label:
+    stage: carrier
+    path: ai_models/Carrier_6AL_Seal_Label.pth
+    variant: small
+    threshold: 0.65
+    class_names: [sealed-explosive-carrier6AL, explosiveLabel, sealed]
+    ignore_classes: [sealed-explosive-carrier6AL, sealed]
+    checks:
+      - {id: carrier_label, label: "1.4G explosive label (carrier)", rule: required, class: explosiveLabel}
+
+  carrier_rust:
+    stage: carrier
+    path: ai_models/Carrier_6AL_Rust.pth
+    variant: small
+    threshold: 0.50
+    class_names: [rust-carrier, rust-carrier]
+    checks:
+      - {id: carrier_rust, label: "Carrier free of rust", rule: forbidden, class: rust-carrier}
+
   h2a_seal_label:
     stage: box
     path: ai_models/H2A_Box_Seal_Label.pth
     variant: small
-    threshold: 0.85
+    threshold: 0.65
     class_names: [sealed2, explosiveLabel, sealed]
     ignore_classes: [sealed2]
     checks:
       - {id: h2a_seal,  label: "H2A box sealed",              rule: required, class: sealed}
       - {id: h2a_label, label: "1.4G explosive label (H2A)",  rule: required, class: explosiveLabel}
 
+  h2a_seal:
+    stage: box
+    path: ai_models/H2A_Box_Seal_Label.pth
+    variant: small
+    threshold: 0.65
+    class_names: [sealed2, explosiveLabel, sealed]
+    ignore_classes: [sealed2, explosiveLabel]
+    checks:
+      - {id: h2a_seal, label: "H2A box wire seal intact", rule: required, class: sealed}
+
+  h2a_label:
+    stage: box
+    path: ai_models/H2A_Box_Seal_Label.pth
+    variant: small
+    threshold: 0.65
+    class_names: [sealed2, explosiveLabel, sealed]
+    ignore_classes: [sealed2, sealed]
+    checks:
+      - {id: h2a_label, label: "1.4G explosive label (H2A)", rule: required, class: explosiveLabel}
+
   h2a_rust:
     stage: box
     path: ai_models/H2A_Box_Rust.pth
     variant: large
-    threshold: 0.30
+    threshold: 0.50
     class_names: [H2A-rust, H2A-rust]
     checks:
       - {id: h2a_rust, label: "H2A box free of rust", rule: forbidden, class: H2A-rust}

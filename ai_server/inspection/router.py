@@ -12,10 +12,10 @@ router = APIRouter(prefix="/inspect", tags=["inspection"])
 
 # Unified Component Stages (Split Box into Outside and Inside)
 STAGE_MODELS = {
-    "stage_carrier": ["carrier_seal_label", "carrier_rust"],
-    "stage_box_outer": ["h2a_seal_label", "h2a_rust"],
+    "stage_carrier": ["carrier_seal", "carrier_rust"],
+    "stage_box_outer": ["h2a_seal", "h2a_rust"],
     "stage_box_inner": ["h2a_inner", "primer_count"],
-    "stage_box": ["h2a_seal_label", "h2a_rust", "h2a_inner", "primer_count"],  # retained for backwards compatibility
+    "stage_box": ["h2a_seal", "h2a_rust", "h2a_inner", "primer_count"],
     "stage_primer": ["primer_assembly", "primer_paint"]
 }
 

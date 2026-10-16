@@ -2,7 +2,7 @@ import os
 import json
 from services.inference_service import InferenceService
 
-class InspectFuzeService:
+class InspectPrimerService:
 
     @staticmethod
     async def inspect_primer_1al(fuze_id, sequence_number, image, lot_number):
@@ -30,29 +30,18 @@ class InspectFuzeService:
             6: os.path.join(BASE_DIR, "Primer_1AL", "sequence_6_magazine_assembly.txt")
         }
 
-        prompt_file = prompt_map.get(sequence_number)
-        if prompt_file and os.path.exists(prompt_file):
-            with open(prompt_file, "r", encoding="utf-8") as f:
-                prompt = f.read()
-            if sequence_number == 2 and lot_number:
-                prompt = prompt.replace("<LOT_NUMBER>", str(lot_number))
-            try:
-                response = await InferenceService.llm_raw_inference(image, prompt)
-                if sequence_number == 2:
-                    return json.dumps({"LOT_NUMBER_MATCH": True, "raw_response": response})
-                return response
-                return response
-            except Exception as e:
-                print(f"Primer 1A/L AI inference error: {e}")
+        prompt_path = prompt_map.get(sequence_number)
+        if not prompt_path or not os.path.exists(prompt_path):
+            raise FileNotFoundError(f"Inspection prompt file not found for Primer 1A/L sequence {sequence_number} at {prompt_path}")
 
-        # Fallback default response
-        result_map = {
-            1: {"CLEANLINESS_APPEARANCE": True},
-            2: {"LOT_NUMBER_MATCH": True},
-            3: {"MAGAZINE_CRACK_DAMAGE": False},
-            4: {"PAPER_LINER_DAMAGE_SPILLAGE": False},
-            5: {"RUBBER_RING_ASSEMBLY": True},
-            6: {"MAGAZINE_ASSEMBLY": True}
-        }
-        res = result_map.get(sequence_number, {"STATUS": True})
-        return json.dumps(res)
+        with open(prompt_path, "r", encoding="utf-8") as f:
+            prompt = f.read()
+
+        if sequence_number == 2:
+            prompt = prompt.replace("{{lot_number}}", str(lot_number))
+
+        result = await InferenceService.inspect_fuze(image=image, prompt=prompt)
+        return json.loads(result)
+
+# Alias for backward compatibility
+InspectFuzeService = InspectPrimerService

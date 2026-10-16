@@ -12,6 +12,7 @@ models:
     path: ai_models/Carrier_6AL_Seal_Label.pth
     variant: small
     threshold: 0.80
+    class_names: [sealed-explosive-carrier6AL, explosiveLabel, sealed]
     ignore_classes: [sealed-explosive-carrier6AL]
     checks:
       - {id: carrier_seal,  label: "Carrier seal intact",          rule: required, class: sealed}
@@ -22,6 +23,7 @@ models:
     path: ai_models/H2A_Box_Seal_Label.pth
     variant: small
     threshold: 0.85
+    class_names: [sealed2, explosiveLabel, sealed]
     ignore_classes: [sealed2]
     checks:
       - {id: h2a_seal,  label: "H2A box sealed",              rule: required, class: sealed}
@@ -32,6 +34,7 @@ models:
     path: ai_models/H2A_Box_Rust.pth
     variant: large
     threshold: 0.30
+    class_names: [H2A-rust, H2A-rust]
     checks:
       - {id: h2a_rust, label: "H2A box free of rust", rule: forbidden, class: H2A-rust}
 
@@ -40,6 +43,7 @@ models:
     path: ai_models/H2A_Box_Inner_Fitments.pth
     variant: small
     threshold: 0.90
+    class_names: [PaparSlip-WoodenSheet-7RpN--m69m, CottonSheet, Diaphgarm, PaperSlip, WoodenSheet]
     ignore_classes: [PaparSlip-WoodenSheet-7RpN--m69m]
     checks:
       - {id: cotton,      label: "Cotton / felt sheet present", rule: required, class: CottonSheet}
@@ -52,6 +56,7 @@ models:
     path: ai_models/Primer_1AL_Assembly_Liner_Ring.pth
     variant: small
     threshold: 0.60
+    class_names: [primer, improper_assembly, improper_paper_liner, proper_assembly, proper_paper_liner, rubber_present]
     checks:
       - {id: paper_liner, label: "Paper liner intact",   rule: pair, good: [proper_paper_liner], bad: [improper_paper_liner]}
       - {id: rubber_ring, label: "Rubber ring present",  rule: required, class: rubber_present}
@@ -63,6 +68,7 @@ models:
     variant: small
     resolution: 512
     threshold: 0.70
+    class_names: [Primer]
     checks:
       - {id: primer_count, label: "Primer count = 18", rule: count, class: Primer, count: 18}   # tender: 18 per H2A box
 
@@ -72,6 +78,7 @@ models:
     variant: small
     resolution: 512
     threshold: 0.30
+    class_names: [Paint_Peal]
     checks:
       - {id: paint_peel, label: "Free of paint peeling", rule: forbidden, class: Paint_Peal}
 
@@ -80,6 +87,6 @@ models:
     path: ai_models/Carrier_6AL_Rust.pth
     variant: large
     threshold: 0.50
+    class_names: [rust-carrier, rust-carrier]
     checks:
-      - {id: carrier_rust, label: "Carrier free of rust", rule: forbidden, class: rust}
-
+      - {id: carrier_rust, label: "Carrier free of rust", rule: forbidden, class: rust-carrier}

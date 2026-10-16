@@ -45,15 +45,36 @@ def evaluate(mcfg, dets):
             elif not seen_good:
                 status, reason, missing_cls = "FAIL", "nothing detected", f"not_detected_{ck['id']}"
         elif r == "count":
-            if len(seen_good) != ck["count"]:
-                status, reason = "FAIL", f"counted {len(seen_good)}, expected {ck['count']}"
+            c_val = len(seen_good)
+            exp_val = ck["count"]
+            if c_val != exp_val:
+                diff = exp_val - c_val
+                status = "FAIL"
+                reason = f"Counted {c_val} of {exp_val} ({diff} missing)" if diff > 0 else f"Counted {c_val} of {exp_val} ({abs(diff)} surplus)"
+            else:
+                status = "PASS"
+                reason = f"Counted {c_val} of {exp_val} (Complete)"
         for d in seen_good + seen_bad:
             d["check_id"] = ck["id"]
             d["status"] = "DEFECT" if (d["class_name"] in bad or status == "FAIL") else "PASS"
         if missing_cls:  # no box to draw, but it must appear in the defect table
             extra.append({"box": None, "score": 0, "class_name": missing_cls, "status": "DEFECT", "check_id": ck["id"]})
         conf = max([d["score"] for d in seen_good + seen_bad], default=None)
-        checks.append({"id": ck["id"], "label": ck["label"], "status": status, "reason": reason, "score": conf})
+        chk_item = {
+            "id": ck["id"],
+            "label": ck["label"],
+            "status": status,
+            "reason": reason,
+            "score": conf,
+            "rule": r
+        }
+        if r == "count":
+            chk_item["count"] = len(seen_good)
+            chk_item["expected_count"] = ck["count"]
+        elif r == "required":
+            chk_item["count"] = len(seen_good)
+            chk_item["min_count"] = ck.get("min_count", 1)
+        checks.append(chk_item)
 
     dets = [d for d in dets if "check_id" in d] + extra   # drop boxes not tied to any check
     overall = "DEFECT" if any(c["status"] == "FAIL" for c in checks) else "PASS"

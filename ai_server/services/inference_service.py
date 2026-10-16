@@ -8,8 +8,15 @@ from repositories.processors_repository import ProcessorsRepository
 class InferenceService:
 
     @staticmethod
+    def get_qwen_engine():
+        if ProcessorsRepository.qwen_8b_model is None:
+            from processors.qwenVLM8b_processor import QwenVLM8BProcessor
+            ProcessorsRepository.qwen_8b_model = QwenVLM8BProcessor()
+        return ProcessorsRepository.qwen_8b_model
+
+    @staticmethod
     async def llm_raw_inference(image, prompt):
-        qwen_engine=ProcessorsRepository.qwen_8b_model
+        qwen_engine = InferenceService.get_qwen_engine()
 
         await image.seek(0)
 
@@ -26,7 +33,7 @@ class InferenceService:
 
     @staticmethod
     async def llm_text_raw_inference(prompt):
-        qwen_engine = ProcessorsRepository.qwen_8b_model
+        qwen_engine = InferenceService.get_qwen_engine()
         
         result = qwen_engine.process_text(prompt)
         return result

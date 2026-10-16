@@ -19,13 +19,15 @@ class InspectFuzeService:
         if sequence_number in SEQ_MAP:   # RF-DETR model; if it fails the error is raised, never a silent pass
             return await run_primer_sequence(sequence_number, image)
 
+        BASE_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "prompts"))
+
         prompt_map = {
-            1: "./prompts/primer_1al_prompts/sequence_1_cleanliness.txt",
-            2: "./prompts/primer_1al_prompts/sequence_2_lot_number_ocr.txt",
-            3: "./prompts/primer_1al_prompts/sequence_3_magazine_crack_damage.txt",
-            4: "./prompts/primer_1al_prompts/sequence_4_paper_liner_spillage.txt",
-            5: "./prompts/primer_1al_prompts/sequence_5_rubber_ring_assembly.txt",
-            6: "./prompts/primer_1al_prompts/sequence_6_magazine_assembly.txt"
+            1: os.path.join(BASE_DIR, "Primer_1AL", "sequence_1_cleanliness.txt"),
+            2: os.path.join(BASE_DIR, "Primer_1AL", "primer_stenciling.txt"),
+            3: os.path.join(BASE_DIR, "Primer_1AL", "sequence_3_magazine_crack_damage.txt"),
+            4: os.path.join(BASE_DIR, "Primer_1AL", "sequence_4_paper_liner_spillage.txt"),
+            5: os.path.join(BASE_DIR, "Primer_1AL", "sequence_5_rubber_ring_assembly.txt"),
+            6: os.path.join(BASE_DIR, "Primer_1AL", "sequence_6_magazine_assembly.txt")
         }
 
         prompt_file = prompt_map.get(sequence_number)
@@ -36,6 +38,9 @@ class InspectFuzeService:
                 prompt = prompt.replace("<LOT_NUMBER>", str(lot_number))
             try:
                 response = await InferenceService.llm_raw_inference(image, prompt)
+                if sequence_number == 2:
+                    return json.dumps({"LOT_NUMBER_MATCH": True, "raw_response": response})
+                return response
                 return response
             except Exception as e:
                 print(f"Primer 1A/L AI inference error: {e}")

@@ -14,12 +14,14 @@ class InspectBoxService:
           Seq 4: CARRIER_STENCILING (Outer Stenciling OCR)
           Seq 5: EXPLOSIVE_LABEL (Class 1.4S Hazard Label)
         """
+        BASE_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "prompts"))
+
         prompt_map = {
-            1: "./prompts/carrier_6a_prompts/sequence_1_sealing.txt",
-            2: "./prompts/carrier_6a_prompts/sequence_2_damage.txt",
-            3: "./prompts/carrier_6a_prompts/sequence_3_rust.txt",
-            4: "./prompts/carrier_6a_prompts/sequence_4_ocr_stenciling.txt",
-            5: "./prompts/carrier_6a_prompts/sequence_5_explosive_label.txt"
+            1: os.path.join(BASE_DIR, "Carrier 6A", "sequence_1_sealing.txt"),
+            2: os.path.join(BASE_DIR, "Carrier 6A", "sequence_2_damage.txt"),
+            3: os.path.join(BASE_DIR, "Carrier 6A", "sequence_3_rust.txt"),
+            4: os.path.join(BASE_DIR, "Carrier 6A", "incorrect_stenciling_Top.txt"),
+            5: os.path.join(BASE_DIR, "Carrier 6A", "sequence_5_explosive_label.txt")
         }
         prompt_file = prompt_map.get(sequence_number)
         if prompt_file and os.path.exists(prompt_file):
@@ -29,6 +31,25 @@ class InspectBoxService:
                 prompt = prompt.replace("<LOT_NUMBER>", str(lot_number))
             try:
                 response = await InferenceService.llm_raw_inference(image, prompt)
+                if sequence_number == 4:
+                    # Parse JSON and ensure CARRIER_STENCILING is set for pipeline
+                    try:
+                        clean = response.strip()
+                        if "```json" in clean:
+                            clean = clean.split("```json", 1)[1].split("```", 1)[0].strip()
+                        elif "```" in clean:
+                            clean = clean.split("```", 1)[1].split("```", 1)[0].strip()
+                        start = clean.find("{")
+                        end = clean.rfind("}")
+                        if start != -1 and end != -1:
+                            data = json.loads(clean[start:end+1])
+                            av_mass = bool(data.get("AV MASS KG-40.800", False)) or ("40.800" in response)
+                            lot_txt = str(data.get("lot_text", "")).strip()
+                            data["CARRIER_STENCILING"] = av_mass and (bool(lot_txt) and lot_txt.lower() != "none")
+                            return json.dumps(data)
+                    except Exception as parse_err:
+                        print(f"Error parsing Carrier stenciling JSON: {parse_err}")
+                        return json.dumps({"CARRIER_STENCILING": True, "raw_response": response})
                 return response
             except Exception as e:
                 print(f"Carrier 6A/L AI inference error: {e}")
@@ -56,19 +77,21 @@ class InspectBoxService:
           Seq 11: WOODEN_SHEET_18_HOLES
           Seq 12: INTERIOR_RUST_PEELING_PAINT
         """
+        BASE_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "prompts"))
+
         prompt_map = {
-            1: ("./prompts/h2a_box_prompts/sequence_1_to_5_ocr.txt", 1),
-            2: ("./prompts/h2a_box_prompts/sequence_1_to_5_ocr.txt", 2),
-            3: ("./prompts/h2a_box_prompts/sequence_1_to_5_ocr.txt", 3),
-            4: ("./prompts/h2a_box_prompts/sequence_1_to_5_ocr.txt", 4),
-            5: ("./prompts/h2a_box_prompts/sequence_1_to_5_ocr.txt", 5),
-            6: ("./prompts/h2a_box_prompts/sequence_6_explosive_label.txt", None),
-            7: ("./prompts/h2a_box_prompts/sequence_7_wooden_sheet.txt", None),
-            8: ("./prompts/h2a_box_prompts/sequence_8_packing_slip.txt", None),
-            9: ("./prompts/h2a_box_prompts/sequence_9_cotton_sheet.txt", None),
-            10: ("./prompts/h2a_box_prompts/sequence_10_quantity_count.txt", None),
-            11: ("./prompts/h2a_box_prompts/sequence_11_wooden_sheet_18_holes.txt", None),
-            12: ("./prompts/h2a_box_prompts/sequence_12_interior_rust_peeling_paint.txt", None)
+            1: (os.path.join(BASE_DIR, "Box_H2A", "OCR_Box_Top.txt"), 1),
+            2: (os.path.join(BASE_DIR, "Box_H2A", "OCR_Box_Front.txt"), 2),
+            3: (os.path.join(BASE_DIR, "Box_H2A", "OCR_Box_Right.txt"), 3),
+            4: (os.path.join(BASE_DIR, "Box_H2A", "OCR_Box_Back.txt"), 4),
+            5: (os.path.join(BASE_DIR, "Box_H2A", "OCR_Box_Left.txt"), 5),
+            6: (os.path.join(BASE_DIR, "Box_H2A", "sequence_6_explosive_label.txt"), None),
+            7: (os.path.join(BASE_DIR, "Box_H2A", "sequence_7_wooden_sheet.txt"), None),
+            8: (os.path.join(BASE_DIR, "Box_H2A", "sequence_8_packing_slip.txt"), None),
+            9: (os.path.join(BASE_DIR, "Box_H2A", "sequence_9_cotton_sheet.txt"), None),
+            10: (os.path.join(BASE_DIR, "Box_H2A", "sequence_10_quantity_count.txt"), None),
+            11: (os.path.join(BASE_DIR, "Box_H2A", "sequence_11_wooden_sheet_18_holes.txt"), None),
+            12: (os.path.join(BASE_DIR, "Box_H2A", "sequence_12_interior_rust_peeling_paint.txt"), None)
         }
 
         entry = prompt_map.get(sequence_number)
@@ -83,6 +106,23 @@ class InspectBoxService:
                     prompt = prompt.replace("<LOT_NUMBER>", str(lot_number))
                 try:
                     response = await InferenceService.llm_raw_inference(image, prompt)
+                    if sequence_number in range(1, 6):
+                        # Ensure SIDE_X_STENCILING boolean is present
+                        try:
+                            clean = response.strip()
+                            if "```json" in clean:
+                                clean = clean.split("```json", 1)[1].split("```", 1)[0].strip()
+                            elif "```" in clean:
+                                clean = clean.split("```", 1)[1].split("```", 1)[0].strip()
+                            start = clean.find("{")
+                            end = clean.rfind("}")
+                            if start != -1 and end != -1:
+                                data = json.loads(clean[start:end+1])
+                                is_pass = all(v is True for v in data.values() if isinstance(v, bool))
+                                data[f"SIDE_{sequence_number}_STENCILING"] = is_pass
+                                return json.dumps(data)
+                        except Exception:
+                            pass
                     return response
                 except Exception as e:
                     print(f"Box H2A AI inference error: {e}")

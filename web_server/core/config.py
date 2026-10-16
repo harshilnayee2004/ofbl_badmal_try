@@ -29,7 +29,7 @@ class Settings:
     POSTGRES_PORT: str = os.getenv("POSTGRES_PORT", "5432")
     NO_FEED_IMAGE_PATH: str = os.getenv("NO_FEED_IMAGE_PATH", r"./static/images/no_feed.jpg")
 
-    AI_SERVER_URL: str = os.getenv("AI_SERVER_URL", "http://localhost:8005/")
+    AI_SERVER_URL: str = os.getenv("AI_SERVER_URL", "http://localhost:8000/")
     LOT_DETAILS_PATH: str = os.getenv("LOT_DETAILS_PATH", r"./lots_details")
 
     # SQLite fallback (for local dev without PostgreSQL)

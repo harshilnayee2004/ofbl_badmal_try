@@ -77,12 +77,30 @@ function renderTestResults(file, data) {
             const pass = c.status === 'PASS';
             const item = document.createElement('div');
             item.className = `d-flex align-items-center justify-content-between p-2 mb-1 rounded ${pass ? 'bg-success-subtle text-success-emphasis' : 'bg-danger-subtle text-danger-emphasis'}`;
+            
+            let displayTitle = c.label || c.id;
+            let countBadgeHtml = '';
+
+            if (c.count !== undefined && c.expected_count !== undefined) {
+                // Count rule: clearly show Counted X / Y
+                displayTitle = `${c.label} (Count: ${c.count} / ${c.expected_count})`;
+                countBadgeHtml = `<span class="badge ${pass ? 'bg-success' : 'bg-danger'} font-monospace px-2 py-1">${c.count} / ${c.expected_count}</span>`;
+            } else if (c.count !== undefined && c.min_count !== undefined && c.min_count > 1) {
+                countBadgeHtml = `<span class="badge ${pass ? 'bg-success' : 'bg-danger'} font-monospace px-2 py-1">${c.count} / ${c.min_count}</span>`;
+            }
+
             item.innerHTML = `
                 <div class="d-flex align-items-center gap-2">
                     <span class="material-symbols-outlined fs-6">${pass ? 'check_circle' : 'cancel'}</span>
-                    <span class="small fw-semibold">${c.label || c.id}</span>
+                    <div>
+                        <div class="small fw-bold">${displayTitle}</div>
+                        ${c.reason ? `<div class="text-secondary font-monospace" style="font-size: 0.75rem;">${c.reason}</div>` : ''}
+                    </div>
                 </div>
-                <span class="badge ${pass ? 'bg-success' : 'bg-danger'}">${c.status}</span>
+                <div class="d-flex align-items-center gap-1">
+                    ${countBadgeHtml}
+                    <span class="badge ${pass ? 'bg-success' : 'bg-danger'}">${c.status}</span>
+                </div>
             `;
             checklistContainer.appendChild(item);
         });
@@ -99,21 +117,95 @@ function renderTestResults(file, data) {
         }
     }
 
-    detCount.innerText = rawDets.length;
+    // Find any count check for displaying "X / Y" in the header
+    const countCheck = data.checks ? data.checks.find(c => c.count !== undefined && c.expected_count !== undefined) : null;
+    if (countCheck) {
+        detCount.innerHTML = `<span class="${countCheck.count === countCheck.expected_count ? 'text-success' : 'text-danger'} fw-bold">${countCheck.count}</span> / ${countCheck.expected_count}`;
+    } else {
+        detCount.innerText = rawDets.length;
+    }
+
     detectionsList.innerHTML = '';
     if (rawDets.length === 0) {
         detectionsList.innerHTML = '<div class="text-muted small text-center py-3">No bounding boxes detected</div>';
     } else {
-        rawDets.forEach(d => {
+        rawDets.forEach((d, idx) => {
             const pass = d.status === 'PASS';
             const row = document.createElement('div');
             row.className = 'd-flex align-items-center justify-content-between p-1 border-bottom small';
             row.innerHTML = `
-                <span class="font-monospace fw-bold ${pass ? 'text-success' : 'text-danger'}">${d.class_name}</span>
-                <span class="badge bg-light text-dark border">${Math.round(d.score * 100)}%</span>
+                <div class="d-flex align-items-center gap-2">
+                    <span class="badge bg-secondary font-monospace" style="font-size: 0.7rem;">#${idx + 1}</span>
+                    <span class="font-monospace fw-bold ${pass ? 'text-success' : 'text-danger'}">${d.class_name}</span>
+                </div>
+                <span class="badge bg-light text-dark border font-monospace">${Math.round(d.score * 100)}%</span>
             `;
             detectionsList.appendChild(row);
         });
+    }
+
+    // Render Detected Text / Markings (OCR)
+    const ocrCard = document.getElementById('ocrCard');
+    const ocrCardTitle = document.getElementById('ocrCardTitle');
+    const ocrStatusBadge = document.getElementById('ocrStatusBadge');
+    const ocrFieldsList = document.getElementById('ocrFieldsList');
+    const ocrExtractedTextBlock = document.getElementById('ocrExtractedTextBlock');
+    const ocrExtractedTextLines = document.getElementById('ocrExtractedTextLines');
+
+    if (ocrCard && ocrFieldsList) {
+        if (data.ocr_data) {
+            ocrCard.classList.remove('d-none');
+            if (ocrCardTitle) ocrCardTitle.innerText = data.ocr_data.model_name || 'Detected Text & Markings';
+            if (ocrStatusBadge) {
+                const ocrPass = data.ocr_data.overall === 'PASS';
+                ocrStatusBadge.className = `badge ${ocrPass ? 'bg-success' : 'bg-danger'}`;
+                ocrStatusBadge.innerText = ocrPass ? 'OCR PASS' : 'OCR DEFECT';
+            }
+
+            // Render live extracted text lines prominently
+            const extracted = data.ocr_data.extracted_text;
+            if (ocrExtractedTextBlock && ocrExtractedTextLines) {
+                if (extracted && Array.isArray(extracted) && extracted.length > 0) {
+                    ocrExtractedTextBlock.classList.remove('d-none');
+                    ocrExtractedTextLines.innerHTML = extracted.map(line => `
+                        <div class="py-1 px-2 mb-1 bg-black bg-opacity-75 rounded border border-warning border-opacity-50 d-flex align-items-center gap-2">
+                            <span class="material-symbols-outlined fs-6 text-warning">format_quote</span>
+                            <span class="text-warning text-uppercase fw-bold">${line}</span>
+                        </div>
+                    `).join('');
+                } else if (typeof extracted === 'string' && extracted.length > 0) {
+                    ocrExtractedTextBlock.classList.remove('d-none');
+                    ocrExtractedTextLines.innerHTML = `
+                        <div class="py-1 px-2 bg-black bg-opacity-75 rounded border border-warning border-opacity-50 text-warning text-uppercase fw-bold">
+                            ${extracted}
+                        </div>
+                    `;
+                } else {
+                    ocrExtractedTextBlock.classList.add('d-none');
+                }
+            }
+
+            ocrFieldsList.innerHTML = '';
+            const fields = data.ocr_data.fields || {};
+            const fieldKeys = Object.keys(fields);
+            if (fieldKeys.length === 0) {
+                ocrFieldsList.innerHTML = '<div class="text-muted small text-center py-2">No specific fields parsed</div>';
+            } else {
+                fieldKeys.forEach(k => {
+                    const val = fields[k];
+                    const isGood = val === true || val === 'MATCHED' || (typeof val === 'string' && val.length > 0 && !val.includes('FAIL') && !val.includes('MISMATCH') && !val.includes('UNREADABLE') && !val.includes('NOT DETECTED') && !val.includes('INVALID'));
+                    const row = document.createElement('div');
+                    row.className = 'd-flex align-items-center justify-content-between p-1 border-bottom small';
+                    row.innerHTML = `
+                        <span class="text-secondary fw-semibold">${k}</span>
+                        <span class="badge ${isGood ? 'bg-success-subtle text-success border border-success' : 'bg-danger-subtle text-danger border border-danger'} font-monospace">${val}</span>
+                    `;
+                    ocrFieldsList.appendChild(row);
+                });
+            }
+        } else {
+            ocrCard.classList.add('d-none');
+        }
     }
 
     // Render Canvas
@@ -127,7 +219,7 @@ function renderTestResults(file, data) {
         const ctx = canvas.getContext('2d');
         ctx.drawImage(img, 0, 0);
 
-        rawDets.forEach(d => {
+        rawDets.forEach((d, idx) => {
             const [x1, y1, x2, y2] = d.box;
             const isGood = d.status === 'PASS';
             const color = isGood ? '#00e676' : '#ff1744';
@@ -136,7 +228,7 @@ function renderTestResults(file, data) {
             ctx.lineWidth = Math.max(3, Math.round(canvas.width / 400));
             ctx.strokeRect(x1, y1, x2 - x1, y2 - y1);
 
-            const label = `${d.class_name} ${(d.score * 100).toFixed(1)}%`;
+            const label = `#${idx + 1} ${d.class_name} ${(d.score * 100).toFixed(0)}%`;
             ctx.font = `bold ${Math.max(14, Math.round(canvas.width / 60))}px sans-serif`;
             const textWidth = ctx.measureText(label).width;
             const textHeight = Math.max(16, Math.round(canvas.width / 55));
@@ -147,6 +239,58 @@ function renderTestResults(file, data) {
             ctx.fillStyle = '#000000';
             ctx.fillText(label, x1 + 6, Math.max(textHeight, y1 - 4));
         });
+
+        // Top-left HUD badge for Count Check
+        if (countCheck) {
+            const isComplete = countCheck.count === countCheck.expected_count;
+            const hudText = isComplete 
+                ? `COUNT: ${countCheck.count} / ${countCheck.expected_count} (PASS)` 
+                : `COUNT: ${countCheck.count} / ${countCheck.expected_count} (${countCheck.expected_count - countCheck.count} MISSING)`;
+            const hudFontSize = Math.max(18, Math.round(canvas.width / 38));
+            ctx.font = `bold ${hudFontSize}px sans-serif`;
+            const hudWidth = ctx.measureText(hudText).width + 32;
+            const hudHeight = hudFontSize + 20;
+
+            ctx.fillStyle = isComplete ? 'rgba(0, 200, 83, 0.92)' : 'rgba(213, 0, 0, 0.92)';
+            ctx.fillRect(16, 16, hudWidth, hudHeight);
+            ctx.strokeStyle = '#ffffff';
+            ctx.lineWidth = 2;
+            ctx.strokeRect(16, 16, hudWidth, hudHeight);
+
+            ctx.fillStyle = '#ffffff';
+            ctx.fillText(hudText, 32, 16 + hudFontSize + 2);
+        }
+
+        // Overlay Extracted Stencil Text Banner on Canvas
+        if (data.ocr_data && data.ocr_data.extracted_text && data.ocr_data.extracted_text.length > 0) {
+            const lines = Array.isArray(data.ocr_data.extracted_text) 
+                ? data.ocr_data.extracted_text 
+                : [data.ocr_data.extracted_text];
+
+            const fontSize = Math.max(16, Math.round(canvas.width / 44));
+            ctx.font = `bold ${fontSize}px monospace`;
+            const padding = 12;
+            const lineHeight = fontSize + 8;
+            const bannerHeight = (lines.length * lineHeight) + (padding * 2);
+
+            // Semi-transparent dark banner at bottom of canvas
+            ctx.fillStyle = 'rgba(10, 15, 25, 0.88)';
+            ctx.fillRect(0, canvas.height - bannerHeight, canvas.width, bannerHeight);
+
+            // Top accent border
+            ctx.strokeStyle = data.ocr_data.overall === 'PASS' ? '#ffc107' : '#ff5252';
+            ctx.lineWidth = Math.max(2, Math.round(canvas.width / 400));
+            ctx.beginPath();
+            ctx.moveTo(0, canvas.height - bannerHeight);
+            ctx.lineTo(canvas.width, canvas.height - bannerHeight);
+            ctx.stroke();
+
+            // Text lines
+            lines.forEach((line, idx) => {
+                ctx.fillStyle = '#ffc107'; // Bright military stencil yellow
+                ctx.fillText(`STENCIL: ${line}`, padding, canvas.height - bannerHeight + padding + ((idx + 1) * lineHeight) - 6);
+            });
+        }
     };
     img.src = URL.createObjectURL(file);
 }
@@ -433,7 +577,7 @@ function renderVideoFrame() {
 
     // Draw active bounding boxes on top of video
     if (currentVideoDetections && currentVideoDetections.length > 0) {
-        currentVideoDetections.forEach(d => {
+        currentVideoDetections.forEach((d, idx) => {
             const [x1, y1, x2, y2] = d.box;
             const isGood = d.status === 'PASS';
             const color = isGood ? '#00e676' : '#ff1744';
@@ -442,7 +586,7 @@ function renderVideoFrame() {
             videoCtx.lineWidth = Math.max(3, Math.round(videoCanvas.width / 400));
             videoCtx.strokeRect(x1, y1, x2 - x1, y2 - y1);
 
-            const label = `${d.class_name} ${(d.score * 100).toFixed(1)}%`;
+            const label = `#${idx + 1} ${d.class_name} ${(d.score * 100).toFixed(0)}%`;
             videoCtx.font = `bold ${Math.max(14, Math.round(videoCanvas.width / 60))}px sans-serif`;
             const textWidth = videoCtx.measureText(label).width;
             const textHeight = Math.max(16, Math.round(videoCanvas.width / 55));
@@ -547,12 +691,29 @@ function updateVideoDashboardData(data) {
                 const pass = c.status === 'PASS';
                 const item = document.createElement('div');
                 item.className = `d-flex align-items-center justify-content-between p-2 mb-1 rounded ${pass ? 'bg-success-subtle text-success-emphasis' : 'bg-danger-subtle text-danger-emphasis'}`;
+                
+                let displayTitle = c.label || c.id;
+                let countBadgeHtml = '';
+
+                if (c.count !== undefined && c.expected_count !== undefined) {
+                    displayTitle = `${c.label} (Count: ${c.count} / ${c.expected_count})`;
+                    countBadgeHtml = `<span class="badge ${pass ? 'bg-success' : 'bg-danger'} font-monospace px-2 py-1">${c.count} / ${c.expected_count}</span>`;
+                } else if (c.count !== undefined && c.min_count !== undefined && c.min_count > 1) {
+                    countBadgeHtml = `<span class="badge ${pass ? 'bg-success' : 'bg-danger'} font-monospace px-2 py-1">${c.count} / ${c.min_count}</span>`;
+                }
+
                 item.innerHTML = `
                     <div class="d-flex align-items-center gap-2">
                         <span class="material-symbols-outlined fs-6">${pass ? 'check_circle' : 'cancel'}</span>
-                        <span class="small fw-semibold">${c.label || c.id}</span>
+                        <div>
+                            <div class="small fw-bold">${displayTitle}</div>
+                            ${c.reason ? `<div class="text-secondary font-monospace" style="font-size: 0.72rem;">${c.reason}</div>` : ''}
+                        </div>
                     </div>
-                    <span class="badge ${pass ? 'bg-success' : 'bg-danger'}">${c.status}</span>
+                    <div class="d-flex align-items-center gap-1">
+                        ${countBadgeHtml}
+                        <span class="badge ${pass ? 'bg-success' : 'bg-danger'}">${c.status}</span>
+                    </div>
                 `;
                 checklistContainer.appendChild(item);
             });
@@ -569,20 +730,30 @@ function updateVideoDashboardData(data) {
     }
 
     currentVideoDetections = rawDets;
-    if (detCount) detCount.innerText = rawDets.length;
+    const countCheck = data.checks ? data.checks.find(c => c.count !== undefined && c.expected_count !== undefined) : null;
+    if (detCount) {
+        if (countCheck) {
+            detCount.innerHTML = `<span class="${countCheck.count === countCheck.expected_count ? 'text-success' : 'text-danger'} fw-bold">${countCheck.count}</span> / ${countCheck.expected_count}`;
+        } else {
+            detCount.innerText = rawDets.length;
+        }
+    }
 
     if (detectionsList) {
         detectionsList.innerHTML = '';
         if (rawDets.length === 0) {
             detectionsList.innerHTML = '<div class="text-muted small text-center py-2">No detections on current frame</div>';
         } else {
-            rawDets.forEach(d => {
+            rawDets.forEach((d, idx) => {
                 const pass = d.status === 'PASS';
                 const row = document.createElement('div');
                 row.className = 'd-flex align-items-center justify-content-between p-1 border-bottom small';
                 row.innerHTML = `
-                    <span class="font-monospace fw-bold ${pass ? 'text-success' : 'text-danger'}">${d.class_name}</span>
-                    <span class="badge bg-light text-dark border">${Math.round(d.score * 100)}%</span>
+                    <div class="d-flex align-items-center gap-2">
+                        <span class="badge bg-secondary font-monospace" style="font-size: 0.7rem;">#${idx + 1}</span>
+                        <span class="font-monospace fw-bold ${pass ? 'text-success' : 'text-danger'}">${d.class_name}</span>
+                    </div>
+                    <span class="badge bg-light text-dark border font-monospace">${Math.round(d.score * 100)}%</span>
                 `;
                 detectionsList.appendChild(row);
             });
@@ -872,7 +1043,55 @@ async function loadInitialChecklist() {
     }
 }
 
+async function loadImageChecklist() {
+    const modelSelect = document.getElementById('testModelSelect');
+    const modelKey = modelSelect ? modelSelect.value : 'stage_carrier';
+    const checklistContainer = document.getElementById('checklistContainer');
+    const ocrCard = document.getElementById('ocrCard');
+    if (ocrCard) ocrCard.classList.add('d-none');
+    if (!checklistContainer) return;
+
+    try {
+        const res = await fetch(`/ai_server/inspect/${modelKey}/checklist`);
+        if (res.ok) {
+            const checks = await res.json();
+            if (checks && checks.length > 0) {
+                checklistContainer.innerHTML = '';
+                checks.forEach(c => {
+                    const item = document.createElement('div');
+                    item.className = 'd-flex align-items-center justify-content-between p-2 mb-1 rounded bg-light border';
+                    item.innerHTML = `
+                        <div class="d-flex align-items-center gap-2">
+                            <span class="material-symbols-outlined fs-6 text-secondary">radio_button_unchecked</span>
+                            <span class="small fw-semibold text-dark">${c.label || c.id}</span>
+                        </div>
+                        <span class="badge bg-secondary-subtle text-secondary border">READY</span>
+                    `;
+                    checklistContainer.appendChild(item);
+                });
+            }
+        }
+    } catch (e) {
+        console.warn('Could not load image checklist:', e);
+    }
+}
+
 document.addEventListener('DOMContentLoaded', () => {
+    // Setup image modal open & select change
+    const uploadModalEl = document.getElementById('uploadTestModal');
+    if (uploadModalEl) {
+        uploadModalEl.addEventListener('show.bs.modal', () => {
+            loadImageChecklist();
+        });
+    }
+
+    const testModelSelect = document.getElementById('testModelSelect');
+    if (testModelSelect) {
+        testModelSelect.addEventListener('change', () => {
+            loadImageChecklist();
+        });
+    }
+
     // Setup video modal close & open
     const videoModalEl = document.getElementById('videoTestModal');
     if (videoModalEl) {

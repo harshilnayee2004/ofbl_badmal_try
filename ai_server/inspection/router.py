@@ -3,6 +3,7 @@ import os
 from fastapi import APIRouter, HTTPException, UploadFile, File
 from .registry import ModelRegistry
 from .rules import load_config, evaluate, checklist, to_messages
+from .ocr_service import run_carrier_text_ocr, run_box_text_ocr, run_primer_text_ocr
 
 BASE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))     # ai_server/
 CFG = load_config(os.path.join(os.path.dirname(os.path.abspath(__file__)), "models_config.yaml"))
@@ -18,12 +19,35 @@ STAGE_MODELS = {
     "stage_primer": ["primer_assembly", "primer_paint"]
 }
 
+OCR_CHECKLIST_MAP = {
+    "carrier_text": [
+        {"id": "carrier_stencil_av_mass", "label": "Horizontal stencil: AV MASS KG-40.800"},
+        {"id": "carrier_stencil_lot", "label": "Carrier Lot / BL stencil format"},
+        {"id": "carrier_stencil_no", "label": "Carrier unit serial number"}
+    ],
+    "box_text": [
+        {"id": "box_stencil_primelec", "label": "Box stencil text: PRIMELEC1A"},
+        {"id": "box_stencil_no", "label": "Box unit number"}
+    ],
+    "primer_text": [
+        {"id": "primer_stencil_read", "label": "Primer 1A/L micro-stencil fields recognized"}
+    ]
+}
+
+STAGE_OCR_MAP = {
+    "stage_carrier": "carrier_text",
+    "stage_box_outer": "box_text",
+    "stage_primer": "primer_text"
+}
+
 
 def resolve_model_keys(key: str):
     """Returns list of model keys for a unified stage, or a single model key."""
     if key in STAGE_MODELS:
         return STAGE_MODELS[key]
     if key in CFG:
+        return [key]
+    if key in OCR_CHECKLIST_MAP:
         return [key]
     return []
 
@@ -49,33 +73,93 @@ def evaluate_frame_models(keys, frame, w, h):
 
 @router.get("/models")
 def models():
-    return [{"key": k, "stage": v["stage"], "checklist": checklist(v)} for k, v in CFG.items()]
+    res = [{"key": k, "stage": v["stage"], "checklist": checklist(v)} for k, v in CFG.items()]
+    res.append({"key": "carrier_text", "stage": "carrier", "checklist": OCR_CHECKLIST_MAP["carrier_text"]})
+    res.append({"key": "box_text", "stage": "box", "checklist": OCR_CHECKLIST_MAP["box_text"]})
+    res.append({"key": "primer_text", "stage": "primer", "checklist": OCR_CHECKLIST_MAP["primer_text"]})
+    return res
 
 
 @router.get("/{key}/checklist")
 def get_checklist(key: str):
+    if key in OCR_CHECKLIST_MAP:
+        return OCR_CHECKLIST_MAP[key]
     keys = resolve_model_keys(key)
     if not keys:
         raise HTTPException(404, "unknown model or stage")
     cl = []
     for k in keys:
-        cl.extend(checklist(CFG[k]))
+        if k in CFG:
+            cl.extend(checklist(CFG[k]))
+        elif k in OCR_CHECKLIST_MAP:
+            cl.extend(OCR_CHECKLIST_MAP[k])
+    if key in STAGE_OCR_MAP and STAGE_OCR_MAP[key] in OCR_CHECKLIST_MAP:
+        cl.extend(OCR_CHECKLIST_MAP[STAGE_OCR_MAP[key]])
     return cl
 
 
 @router.post("/{key}")
 async def inspect(key: str, image: UploadFile = File(...)):
-    """Upload one frame -> messages for browser overlay (detections + checklist)."""
+    """Upload one frame -> messages for browser overlay (detections + checklist + OCR data)."""
+    import cv2, numpy as np
+
+    image_bytes = await image.read()
+    frame = cv2.imdecode(np.frombuffer(image_bytes, np.uint8), cv2.IMREAD_COLOR)
+    if frame is None:
+        raise HTTPException(400, "not an image")
+    h, w = frame.shape[:2]
+
+    # 1. Pure OCR Inspection
+    if key in OCR_CHECKLIST_MAP:
+        if key == "carrier_text":
+            ocr_res = await run_carrier_text_ocr(image_bytes, image.filename or "frame.jpg")
+        elif key == "box_text":
+            ocr_res = await run_box_text_ocr(image_bytes, image.filename or "frame.jpg")
+        elif key == "primer_text":
+            ocr_res = await run_primer_text_ocr(image_bytes, image.filename or "frame.jpg")
+        else:
+            raise HTTPException(404, "unknown OCR model")
+
+        return {
+            "overall": ocr_res["overall"],
+            "messages": [
+                {"type": "detections", "frame_w": w, "frame_h": h, "detections": []},
+                *[{"type": "checklist", "id": c["id"], "status": c["status"]} for c in ocr_res["checks"]]
+            ],
+            "checks": ocr_res["checks"],
+            "ocr_data": ocr_res["ocr_data"]
+        }
+
     keys = resolve_model_keys(key)
     if not keys:
         raise HTTPException(404, "unknown model or stage")
 
-    import cv2, numpy as np
-    frame = cv2.imdecode(np.frombuffer(await image.read(), np.uint8), cv2.IMREAD_COLOR)
-    if frame is None:
-        raise HTTPException(400, "not an image")
-    h, w = frame.shape[:2]
-    return evaluate_frame_models(keys, frame, w, h)
+    # 2. Visual Object Detection (RF-DETR)
+    res = evaluate_frame_models(keys, frame, w, h)
+
+    # 3. If Unified Stage has OCR, run it concurrently/sequentially
+    if key in STAGE_OCR_MAP:
+        ocr_key = STAGE_OCR_MAP[key]
+        try:
+            if ocr_key == "carrier_text":
+                ocr_res = await run_carrier_text_ocr(image_bytes, image.filename or "frame.jpg")
+            elif ocr_key == "box_text":
+                ocr_res = await run_box_text_ocr(image_bytes, image.filename or "frame.jpg")
+            elif ocr_key == "primer_text":
+                ocr_res = await run_primer_text_ocr(image_bytes, image.filename or "frame.jpg")
+            else:
+                ocr_res = None
+
+            if ocr_res:
+                res["checks"].extend(ocr_res["checks"])
+                res["messages"].extend([{"type": "checklist", "id": c["id"], "status": c["status"]} for c in ocr_res["checks"]])
+                res["ocr_data"] = ocr_res["ocr_data"]
+                if ocr_res["overall"] != "PASS":
+                    res["overall"] = "REJECT"
+        except Exception as ocr_err:
+            print(f"[Warning] Stage OCR error for {key}: {ocr_err}")
+
+    return res
 
 
 @router.post("/{key}/video")

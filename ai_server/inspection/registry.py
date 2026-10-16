@@ -40,7 +40,28 @@ class RFDETRDetector:
         self.threshold = threshold
         self.lock = threading.Lock()
 
+        # Extract real class names from model config or checkpoint metadata
+        self.custom_names = self.m.get("class_names")
+        if not self.custom_names and os.path.exists(path):
+            try:
+                import torch
+                ckpt = torch.load(path, map_location="cpu", weights_only=False)
+                args = ckpt.get("args") if isinstance(ckpt, dict) else None
+                if isinstance(args, dict):
+                    self.custom_names = args.get("class_names")
+                elif hasattr(args, "class_names"):
+                    self.custom_names = getattr(args, "class_names")
+            except Exception as e:
+                print(f"[registry] Note: could not extract class_names from checkpoint: {e}")
+
     def _names(self):
+        # 1. Custom classes from checkpoint or models_config.yaml
+        if self.custom_names:
+            if isinstance(self.custom_names, dict):
+                return {int(k): v for k, v in self.custom_names.items()}
+            return dict(enumerate(self.custom_names))
+
+        # 2. Model class_names attribute (fallback)
         cn = getattr(self.model, "class_names", None)
         if isinstance(cn, dict):
             names = {int(k): v for k, v in cn.items()}

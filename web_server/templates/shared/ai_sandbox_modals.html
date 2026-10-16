@@ -19,12 +19,17 @@
                         <label class="form-label fw-bold small text-uppercase text-muted mb-1">Select Inspection Model</label>
                         <select class="form-select form-select-lg shadow-sm" id="testModelSelect">
                             <optgroup label="⭐ Complete Component Inspection (Unified)">
-                                <option value="stage_carrier">1. Carrier 6A/L: Complete Inspection (Seal, Label, Rust)</option>
-                                <option value="stage_box_outer">2A. Box H2A (Exterior / Outside): Seal, Label, Rust</option>
+                                <option value="stage_carrier">1. Carrier 6A/L: Complete Inspection (Seal, Label, Rust, Stencil Text)</option>
+                                <option value="stage_box_outer">2A. Box H2A (Exterior / Outside): Seal, Label, Rust, Stencil Text</option>
                                 <option value="stage_box_inner">2B. Box H2A (Interior / Inside): Packing Fitments, Count (18)</option>
-                                <option value="stage_primer" selected>3. Primer 1A/L: Complete Inspection (Assembly, Liner, Ring, Paint)</option>
+                                <option value="stage_primer" selected>3. Primer 1A/L: Complete Inspection (Assembly, Liner, Ring, Paint, Micro-OCR)</option>
                             </optgroup>
-                            <optgroup label="Individual Sub-Models">
+                            <optgroup label="🔍 Text Detection & Stenciling (Qwen 8B VLM OCR)">
+                                <option value="carrier_text">Carrier 6A/L: Stenciling OCR (AV MASS, LOT, CARR NO)</option>
+                                <option value="box_text">Box H2A: Stenciling OCR (PRIMELEC1A, BOX NO)</option>
+                                <option value="primer_text">Primer 1A/L: Laser Lot & Micro-Stencil OCR</option>
+                            </optgroup>
+                            <optgroup label="Individual Sub-Models (RF-DETR)">
                                 <option value="carrier_seal_label">Carrier 6A/L: Explosive Label & Seal</option>
                                 <option value="carrier_rust">Carrier 6A/L: Rust Defect</option>
                                 <option value="h2a_seal_label">Box H2A: Explosive Label & Seal</option>
@@ -63,7 +68,7 @@
                             <div class="card-body p-0 d-flex align-items-center justify-content-center position-relative overflow-hidden" style="min-height: 480px; max-height: 560px;">
                                 <div id="canvasPlaceholder" class="text-center text-secondary p-4 drop-zone" style="cursor: pointer;" onclick="document.getElementById('testImageInput').click()">
                                     <span class="material-symbols-outlined fs-1 mb-2 d-block text-secondary">add_photo_alternate</span>
-                                    <span>Select or drag an image and click <strong>Run Inspection</strong> to see live bounding boxes</span>
+                                    <span>Select or drag an image and click <strong>Run Inspection</strong> to see live bounding boxes & text detection</span>
                                 </div>
                                 <canvas id="testResultCanvas" class="d-none" style="max-width: 100%; max-height: 560px; object-fit: contain;"></canvas>
                             </div>
@@ -90,12 +95,38 @@
                             </div>
                         </div>
 
+                        <!-- Detected Text / Markings (OCR) -->
+                        <div class="card border-0 shadow-sm d-none" id="ocrCard">
+                            <div class="card-header bg-white py-2 fw-bold small text-uppercase text-muted d-flex justify-content-between align-items-center">
+                                <span class="d-flex align-items-center gap-1">
+                                    <span class="material-symbols-outlined fs-6 text-primary">format_shapes</span>
+                                    <span id="ocrCardTitle">Detected Text & Markings</span>
+                                </span>
+                                <span class="badge bg-primary" id="ocrStatusBadge">OCR PASS</span>
+                            </div>
+                            <div class="card-body p-2" style="max-height: 250px; overflow-y: auto;">
+                                <!-- Extracted Text Stencil Visual Block -->
+                                <div class="mb-2 p-2 bg-dark rounded border border-warning border-opacity-50 text-warning" id="ocrExtractedTextBlock">
+                                    <div class="d-flex align-items-center justify-content-between mb-1">
+                                        <span class="text-white-50 text-uppercase fw-bold" style="font-size: 0.68rem; letter-spacing: 0.5px;">Extracted Stencil Text</span>
+                                        <span class="badge bg-warning text-dark font-monospace" style="font-size: 0.65rem;">QWEN 8B OCR</span>
+                                    </div>
+                                    <div id="ocrExtractedTextLines" class="font-monospace fw-bold small">
+                                        <!-- Stencil lines inserted here -->
+                                    </div>
+                                </div>
+                                <div id="ocrFieldsList">
+                                    <div class="text-muted small text-center py-2">No text detected</div>
+                                </div>
+                            </div>
+                        </div>
+
                         <!-- Detections List -->
                         <div class="card border-0 shadow-sm flex-grow-1">
                             <div class="card-header bg-white py-2 fw-bold small text-uppercase text-muted">
                                 Detected Objects (<span id="detCount">0</span>)
                             </div>
-                            <div class="card-body p-2" id="detectionsList" style="max-height: 200px; overflow-y: auto;">
+                            <div class="card-body p-2" id="detectionsList" style="max-height: 180px; overflow-y: auto;">
                                 <div class="text-muted small text-center py-3">No detections yet</div>
                             </div>
                         </div>

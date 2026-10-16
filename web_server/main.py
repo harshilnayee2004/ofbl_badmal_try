@@ -18,8 +18,7 @@ from controllers.box_controller import router as box_router
 from controllers.auth_controller import router as auth_router
 from controllers.user_controller import router as user_router
 from controllers.test_controller import router as test_router
-from controllers.fuze_controller import router as fuze_router
-from controllers.primer_controller import router as primer_router
+from controllers.primer_controller import router as primer_router, legacy_fuze_router as fuze_router
 from controllers.chat_controller import router as chat_router
 from controllers.admin_controller import router as admin_router
 from controllers.report_controller import router as report_router
@@ -30,16 +29,16 @@ from controllers.ptz_control_controller import router as ptz_control_router
 from controllers.ai_server_controller import router as ai_server_router
 from controllers.surveillance_controller import router as surveillance_router
 from socket_controller.box_motor_socket_controller import box_motor_router
-from socket_controller.fuze_motor_socket_controller import fuze_motor_router
+from socket_controller.primer_motor_socket_controller import primer_motor_router as fuze_motor_router, primer_motor_router
 from socket_controller.carrier_motor_socket_controller import carrier_motor_router
 from socket_controller.box_log_socket_controller import router as box_log_router
 from socket_controller.chat_socket_controller import router as chat_socket_router
 from socket_controller.camera_status_socket_controller import camera_status_router
-from socket_controller.fuze_log_socket_controller import router as fuze_log_router
+from socket_controller.primer_log_socket_controller import router as fuze_log_router
 from socket_controller.carrier_log_socket_controller import carrier_log_router
 from socket_controller.lot_inspection_socket_controller import inspection_lot_router
 from socket_controller.box_inspection_socket_controller import inspection_box_router
-from socket_controller.fuze_inspection_socket_controller import inspection_fuze_router
+from socket_controller.primer_inspection_socket_controller import inspection_primer_router as inspection_fuze_router, inspection_primer_router
 from socket_controller.carrier_inspection_socket_controller import inspection_carrier_router
 from socket_controller.admin_dashboard_socket_controller import admin_dashboard_router
 from models.lot_model import Lot
@@ -47,18 +46,14 @@ from models.carrier_model import Carrier
 from models.carrier_log_model import CarrierLog
 from models.box_model import Box
 from models.user_model import User
-from models.fuze_model import Fuze
-from models.primer_model import Primer
+from models.primer_model import Primer, Primer as Fuze
 from models.camera_model import Camera
 from models.box_log_model import BoxLog
 from models.message_model import Message
-from models.fuze_log_model import FuzeLog
-from models.primer_log_model import PrimerLog
+from models.primer_log_model import PrimerLog, PrimerLog as FuzeLog
 from models.box_h2a_inspection_model import BoxH2AInspection
 from models.carrier_6al_inspection_model import Carrier6ALInspection
 from models.primer_1al_inspection_model import Primer1ALInspection
-from models.box_G70_inspection_model import BoxG70Inspection
-from models.box_M104_inspection_model import BoxM104Inspection
 from services.startup_and_stop_service import startup_checks, stop_checks
 
 

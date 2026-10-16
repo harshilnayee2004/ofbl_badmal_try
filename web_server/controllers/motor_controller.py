@@ -1,7 +1,7 @@
 from fastapi import APIRouter
 from schemas.response_dto import ResponseDTO
 from socket_controller.box_motor_socket_controller import box_motor_manager
-from socket_controller.fuze_motor_socket_controller import fuze_motor_manager
+from socket_controller.primer_motor_socket_controller import primer_motor_manager as fuze_motor_manager, primer_motor_manager
 from socket_controller.carrier_motor_socket_controller import carrier_motor_manager
 
 
@@ -33,6 +33,7 @@ async def box_motor(angle: int):
     )
 
 
+@router.get("/primer/{angle}")
 @router.get("/fuze/{angle}")
 async def fuze_motor(angle: int):
     await fuze_motor_manager.send_json({"type": "command", "object": {"angle": angle}})

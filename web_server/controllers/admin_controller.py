@@ -3,7 +3,7 @@ from models.lot_model import Lot
 from models.carrier_model import Carrier
 from models.box_model import Box
 from models.user_model import User
-from models.fuze_model import Fuze
+from models.primer_model import Primer as Fuze
 from core.deps import get_admin_user
 from sqlmodel import Session, select, func
 from fastapi.responses import HTMLResponse

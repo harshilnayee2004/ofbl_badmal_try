@@ -39,13 +39,11 @@ from models.carrier_log_model import CarrierLog
 
 from models.box_model import Box
 from models.box_h2a_inspection_model import BoxH2AInspection
-from models.box_M104_inspection_model import BoxM104Inspection
-from models.box_G70_inspection_model import BoxG70Inspection
 from models.box_log_model import BoxLog
 
-from models.fuze_model import Fuze
+from models.primer_model import Primer, Primer as Fuze
 from models.primer_1al_inspection_model import Primer1ALInspection
-from models.fuze_log_model import FuzeLog
+from models.primer_log_model import PrimerLog, PrimerLog as FuzeLog
 
 
 def get_counts(db: Session):
@@ -57,12 +55,10 @@ def get_counts(db: Session):
         "carrier_logs": len(db.exec(select(CarrierLog)).all()),
         "boxes": len(db.exec(select(Box)).all()),
         "box_h2a_inspections": len(db.exec(select(BoxH2AInspection)).all()),
-        "box_m104_inspections": len(db.exec(select(BoxM104Inspection)).all()),
-        "box_g70_inspections": len(db.exec(select(BoxG70Inspection)).all()),
         "box_logs": len(db.exec(select(BoxLog)).all()),
-        "fuzes": len(db.exec(select(Fuze)).all()),
+        "primers": len(db.exec(select(Primer)).all()),
         "primer_1al_inspections": len(db.exec(select(Primer1ALInspection)).all()),
-        "fuze_logs": len(db.exec(select(FuzeLog)).all()),
+        "primer_logs": len(db.exec(select(PrimerLog)).all()),
     }
 
 
@@ -127,8 +123,6 @@ def delete_lots_by_instances(db: Session, lots_to_delete: List[Lot], delete_file
     boxes = db.exec(select(Box).where(Box.lot_id.in_(lot_ids))).all()
     box_ids = [b.id for b in boxes if b.id is not None]
     box_h2a_ids = [b.box_h2a_inspection_id for b in boxes if b.box_h2a_inspection_id is not None]
-    box_m104_ids = [b.box_m104_inspection_id for b in boxes if b.box_m104_inspection_id is not None]
-    box_g70_ids = [b.box_g70_inspection_id for b in boxes if b.box_g70_inspection_id is not None]
 
     fuzes = db.exec(select(Fuze).where(Fuze.lot_id.in_(lot_ids))).all()
     fuze_ids = [f.id for f in fuzes if f.id is not None]
@@ -155,10 +149,6 @@ def delete_lots_by_instances(db: Session, lots_to_delete: List[Lot], delete_file
         db.exec(delete(Box).where(Box.id.in_(box_ids)))
     if box_h2a_ids:
         db.exec(delete(BoxH2AInspection).where(BoxH2AInspection.id.in_(box_h2a_ids)))
-    if box_m104_ids:
-        db.exec(delete(BoxM104Inspection).where(BoxM104Inspection.id.in_(box_m104_ids)))
-    if box_g70_ids:
-        db.exec(delete(BoxG70Inspection).where(BoxG70Inspection.id.in_(box_g70_ids)))
     db.commit()
 
     # 6. Delete Carriers & Carrier Inspections

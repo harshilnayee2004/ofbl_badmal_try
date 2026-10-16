@@ -1,8 +1,8 @@
 from sqlmodel import Session, select
-from models.fuze_model import Fuze
+from models.primer_model import Primer, Primer as Fuze
 from models.primer_1al_inspection_model import Primer1ALInspection
-from services.log_service import FuzeLogService
-from socket_controller.fuze_inspection_socket_controller import inspection_fuze_manager
+from services.log_service import PrimerLogService, PrimerLogService as FuzeLogService
+from socket_controller.primer_inspection_socket_controller import inspection_primer_manager, inspection_primer_manager as inspection_fuze_manager
 from repositories.current_inspection_repositories import Primer1ALInspectionRepository
 
 class Primer1ALSequenceService:

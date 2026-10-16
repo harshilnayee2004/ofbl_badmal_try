@@ -4,14 +4,13 @@ from datetime import datetime
 from core.config import settings
 from models.box_model import Box
 from models.lot_model import Lot
-from fastapi import HTTPException
-from models.fuze_model import Fuze
+from models.primer_model import Primer as Fuze, Primer
 from typing import List, Dict, Any
 from models.user_model import User
 from sqlmodel import Session, select
 from schemas.lot_dto import LotCreate
 from services.box_service import BoxService
-from services.fuze_service import FuzeService
+from services.primer_service import PrimerService as FuzeService, PrimerService
 from services.carrier_service import CarrierService
 from models.carrier_model import Carrier
 from models.box_h2a_inspection_model import BoxH2AInspection
@@ -262,24 +261,6 @@ class LotService:
                     column.name: getattr(inspection, column.name)
                     for column in BoxH2AInspection.__table__.columns
                 }
-        elif box.box_type == "M104":
-            from models.box_M104_inspection_model import BoxM104Inspection
-            inspection = db.exec(
-                select(BoxM104Inspection).where(BoxM104Inspection.id == box.box_m104_inspection_id)).first()
-            if inspection:
-                inspection_dict = {
-                    column.name: getattr(inspection, column.name)
-                    for column in BoxM104Inspection.__table__.columns
-                }
-        elif box.box_type == "G70":
-            from models.box_G70_inspection_model import BoxG70Inspection
-            inspection = db.exec(
-                select(BoxG70Inspection).where(BoxG70Inspection.id == box.box_g70_inspection_id)).first()
-            if inspection:
-                inspection_dict = {
-                    column.name: getattr(inspection, column.name)
-                    for column in BoxG70Inspection.__table__.columns
-                }
 
         # Determine parent carrier sequence (1 carrier -> 4 boxes)
         carrier_seq = None
@@ -522,15 +503,10 @@ class LotService:
         if lot is None:
             return None
         
-        if count_type == "fuze":
-            lot.fuze_count_confirmation = lot.fuze_count_confirmation + 1
+        if count_type in ["fuze", "primer"]:
+            lot.fuze_count_confirmation = (lot.fuze_count_confirmation or 0) + 1
         else:
-            if M104Counting.command_counting_command == "Counting":
-                return None
-            count = await BoxM104InspectionService.start_counting()
-            if count == -1:
-                return None
-            lot.box_count_confirmation = count
+            lot.box_count_confirmation = (lot.box_count_confirmation or 0) + 1
         db.add(lot)
         db.commit()
         db.refresh(lot)
@@ -587,16 +563,6 @@ class LotService:
                 inspection = db.exec(select(BoxH2AInspection).where(BoxH2AInspection.id == box.box_h2a_inspection_id)).first()
                 if inspection:
                     for column in BoxH2AInspection.__table__.columns:
-                        inspection_dict[column.name] = getattr(inspection, column.name)
-            elif box.box_type in ["M104", "M-104 Type 2"] and getattr(box, "box_m104_inspection_id", None):
-                inspection = db.exec(select(BoxM104Inspection).where(BoxM104Inspection.id == box.box_m104_inspection_id)).first()
-                if inspection:
-                    for column in BoxM104Inspection.__table__.columns:
-                        inspection_dict[column.name] = getattr(inspection, column.name)
-            elif box.box_type in ["G70", "G-70"] and getattr(box, "box_g70_inspection_id", None):
-                inspection = db.exec(select(BoxG70Inspection).where(BoxG70Inspection.id == box.box_g70_inspection_id)).first()
-                if inspection:
-                    for column in BoxG70Inspection.__table__.columns:
                         inspection_dict[column.name] = getattr(inspection, column.name)
             box_dict["inspection"] = inspection_dict
             

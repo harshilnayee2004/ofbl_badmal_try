@@ -7,16 +7,11 @@ from datetime import datetime
 from models.box_model import Box
 from models.lot_model import Lot
 from models.user_model import User
-from models.fuze_model import Fuze
+from models.primer_model import Primer as Fuze
 from sqlmodel import Session, select
 from services.log_service import BoxLogService
 from models.box_h2a_inspection_model import BoxH2AInspection
 from services.box_h2a_inspection_service import BoxH2AInspectionService
-# --- [LEGACY MODELS - PRESERVED] ---
-# from models.box_G70_inspection_model import BoxG70Inspection
-# from models.box_M104_inspection_model import BoxM104Inspection
-# from services.box_G70_inspection_service import BoxG70InspectionService
-# from services.box_M104_inspection_service import BoxM104InspectionService
 from schemas.box_dto import BoxStatusUpdateRequest,BoxNumberUpdateRequest
 from socket_controller.lot_inspection_socket_controller import inspection_lot_manager
 
@@ -31,30 +26,15 @@ class BoxService:
         box = Box(
             lot_id=lot_id,
             carrier_id=carrier_id,
-            box_type=box_type,
+            box_type=box_type or "H2A",
             sequence_number=sequence_number,
             files_path=box_files_path
         )
-        if box_type in ["H2A", "Box H2A"]:
-            inspection = BoxH2AInspection()
-            db.add(inspection)
-            db.commit()
-            db.refresh(inspection)
-            box.box_h2a_inspection_id = inspection.id
-        elif box_type == "M104":
-            from models.box_M104_inspection_model import BoxM104Inspection
-            inspection = BoxM104Inspection()
-            db.add(inspection)
-            db.commit()
-            db.refresh(inspection)
-            box.box_m104_inspection_id = inspection.id
-        elif box_type == "G70":
-            from models.box_G70_inspection_model import BoxG70Inspection
-            inspection = BoxG70Inspection()
-            db.add(inspection)
-            db.commit()
-            db.refresh(inspection)
-            box.box_g70_inspection_id = inspection.id
+        inspection = BoxH2AInspection()
+        db.add(inspection)
+        db.commit()
+        db.refresh(inspection)
+        box.box_h2a_inspection_id = inspection.id
         box.box_inspection_status = "Pending"
 
         db.add(box)
@@ -140,26 +120,11 @@ class BoxService:
         from repositories.current_inspection_repositories import BoxInspectionRepository
         BoxInspectionRepository.inspection_command = "Continue"
 
-        if box_type in ["H2A", "Box H2A"]:
-            asyncio.create_task(BoxH2AInspectionService.start_inspection(
-                box_id=box_id,
-                lot_number=lot_obj.lot_number,
-                suppress_cam_error=suppress_cam_error
-            ))
-        elif box_type == "G70":
-            from services.box_G70_inspection_service import BoxG70InspectionService
-            asyncio.create_task(BoxG70InspectionService.start_inspection(
-                box_id=box_id,
-                lot_number=lot_obj.lot_number,
-                suppress_cam_error=suppress_cam_error
-            ))
-        elif box_type == "M104":
-            from services.box_M104_inspection_service import BoxM104InspectionService
-            asyncio.create_task(BoxM104InspectionService.start_inspection(
-                box_id=box_id,
-                lot_number=lot_obj.lot_number,
-                suppress_cam_error=suppress_cam_error
-            ))
+        asyncio.create_task(BoxH2AInspectionService.start_inspection(
+            box_id=box_id,
+            lot_number=lot_obj.lot_number,
+            suppress_cam_error=suppress_cam_error
+        ))
 
         return {"status": True, "message": "Inspection started"}
 
@@ -226,35 +191,6 @@ class BoxService:
                     description=f"Update Parameter {param_label} Has Been {action} By {current_user.email}",
                     box_id=request.box_id
                 )
-                db.commit()
-                return f"Parameter {request.parameter_key} Updated", True
-        elif box_obj.box_type == "M104" and box_obj.box_m104_inspection_id:
-            from models.box_M104_inspection_model import BoxM104Inspection
-            inspection_obj = db.exec(select(BoxM104Inspection).where(BoxM104Inspection.id == box_obj.box_m104_inspection_id)).first()
-            if inspection_obj and hasattr(inspection_obj, request.parameter_key):
-                setattr(inspection_obj, request.parameter_key, request.value)
-                
-                # Check acceptance status
-                parameters = [getattr(inspection_obj, c.name) for c in inspection_obj.__table__.columns if c.name != "id"]
-                if False in parameters:
-                    box_obj.acceptance_status = False
-                elif all(p is True for p in parameters):
-                    box_obj.acceptance_status = True
-                else:
-                    box_obj.acceptance_status = None
-                
-                db.add(inspection_obj)
-                db.add(box_obj)
-                
-                # Log the change
-                action = "Passed" if request.value else "Rejected"
-                param_label = request.parameter_key.replace("_", " ").title()
-                box_log_service = BoxLogService(db)
-                await box_log_service.add_box_log(
-                    description=f"Update Parameter {param_label} Has Been {action} By {current_user.email}",
-                    box_id=request.box_id
-                )
-                
                 db.commit()
                 return f"Parameter {request.parameter_key} Updated", True
         

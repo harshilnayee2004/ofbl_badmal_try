@@ -8,17 +8,17 @@ from datetime import datetime
 from sqlmodel import Session, select
 from core.config import settings
 from core.database import engine
-from models.fuze_model import Fuze
+from models.primer_model import Primer, Primer as Fuze
 from models.lot_model import Lot
 from models.primer_1al_inspection_model import Primer1ALInspection
-from services.log_service import FuzeLogService
+from services.log_service import PrimerLogService, PrimerLogService as FuzeLogService
 from services.video_recording_service import VideoRecorder
 from services.primer_1al_sequence_service import Primer1ALSequenceService
 from repositories.camera_repositories import CameraRepository
 from repositories.current_inspection_repositories import Primer1ALInspectionRepository
 from repositories.inspection_sequence_repositories import Primer1ALInspectionDetails
-from socket_controller.fuze_motor_socket_controller import fuze_motor_manager
-from socket_controller.fuze_inspection_socket_controller import inspection_fuze_manager
+from socket_controller.primer_motor_socket_controller import primer_motor_manager, primer_motor_manager as fuze_motor_manager
+from socket_controller.primer_inspection_socket_controller import inspection_primer_manager, inspection_primer_manager as inspection_fuze_manager
 from socket_controller.lot_inspection_socket_controller import inspection_lot_manager
 
 class Primer1ALInspectionService:

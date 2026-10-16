@@ -1,11 +1,11 @@
 from datetime import datetime
 from models.carrier_log_model import CarrierLog
 from models.box_log_model import BoxLog
-from models.fuze_log_model import FuzeLog
+from models.primer_log_model import PrimerLog, PrimerLog as FuzeLog
 from sqlmodel import Session, select
 from socket_controller.carrier_log_socket_controller import carrier_log_manager
 from socket_controller.box_log_socket_controller import box_log_manager
-from socket_controller.fuze_log_socket_controller import fuze_log_manager
+from socket_controller.primer_log_socket_controller import primer_log_manager, primer_log_manager as fuze_log_manager
 
 
 class CarrierLogService:
